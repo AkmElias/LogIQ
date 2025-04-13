@@ -14,6 +14,7 @@
     border: 1px solid #ccd0d4;
     box-shadow: 0 1px 1px rgba(0,0,0,.04);
     padding: 20px;
+    margin-bottom: 20px;
 }
 
 .log-entry {
@@ -471,4 +472,18 @@
 .nav-tab[data-level="warning"] { --tab-color: #ffa700; }
 .nav-tab[data-level="info"] { --tab-color: #0099cc; }
 .nav-tab[data-level="debug"] { --tab-color: #777; }
-.nav-tab[data-level="deprecated"] { --tab-color: #6c757d; } 
+.nav-tab[data-level="deprecated"] { --tab-color: #6c757d; }
+
+/* Add this to your existing CSS */
+#logiq-pagination:empty {
+    display: none;
+}
+
+/* Style for empty log message */
+.description {
+    padding: 20px;
+    text-align: center;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 3px;
+} 

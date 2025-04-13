@@ -54,13 +54,15 @@ jQuery(document).ready(function($) {
             success: function(response) {
                 if (response.success) {
                     $('#logiq-log-viewer').html(response.data.html);
+                    
+                    // Only show pagination div if there's pagination content
                     if (response.data.pagination) {
-                        $('#logiq-pagination').html(response.data.pagination);
+                        $('#logiq-pagination').html(response.data.pagination).show();
                     } else {
-                        $('#logiq-pagination').empty();
+                        $('#logiq-pagination').empty().hide();
                     }
                     
-                    // Update tab counts and colors
+                    // Update tab counts
                     $('.nav-tab').each(function() {
                         var level = $(this).data('level');
                         var count = response.data.counts[level] || 0;
@@ -76,6 +78,7 @@ jQuery(document).ready(function($) {
                     });
                 } else {
                     $('#logiq-log-viewer').html('<p class="error">' + response.data + '</p>');
+                    $('#logiq-pagination').empty().hide();
                 }
             },
             error: function() {

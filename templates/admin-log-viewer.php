@@ -43,14 +43,4 @@
     <div id="logiq-pagination">
         <!-- Pagination will be loaded here via AJAX -->
     </div>
-</div>
-
-<div class="log-entry" data-level="<?php echo esc_attr($log_data['level']); ?>">
-    <div class="log-timestamp"><?php echo esc_html($log_data['timestamp']); ?></div>
-    <div class="log-level"><?php echo esc_html(strtoupper($log_data['level'])); ?></div>
-    <?php if (!empty($log_data['context'])): ?>
-        <div class="log-context"><?php echo esc_html($log_data['context']); ?></div>
-    <?php endif; ?>
-    <div class="log-file"><?php echo esc_html($log_data['file']); ?>:<?php echo absint($log_data['line']); ?></div>
-    <div class="log-data"><?php echo LogIQ_Security::sanitize_log_data($log_data['data']); ?></div>
 </div> 

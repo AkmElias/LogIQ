@@ -79,50 +79,42 @@ class LogIQ_Ajax {
         $current_page_entries = array_slice($log_entries, $offset, $per_page);
 
         $output = '';
-        foreach ($current_page_entries as $entry) {
-            if (empty($entry)) {
-                continue;
+        $pagination = '';
+        
+        // Generate logs output
+        if (!empty($current_page_entries)) {
+            foreach ($current_page_entries as $entry) {
+                if (empty($entry)) {
+                    continue;
+                }
+                $log_data = json_decode($entry, true);
+                if (!$log_data) {
+                    continue;
+                }
+                $output .= $this->format_log_entry($log_data);
             }
-
-            $log_data = json_decode($entry, true);
-            if (!$log_data) {
-                $output .= '<div class="log-entry"><div class="log-data">' . esc_html($entry) . '</div></div>';
-                continue;
-            }
-
-            $output .= $this->format_log_entry($log_data);
         }
 
         if (empty($output)) {
             $output = '<p class="description">' . __('No logs found.', 'logiq') . '</p>';
         }
 
-        // Generate pagination only if there are multiple pages
-        $pagination = '';
+        // Only generate pagination if there are multiple pages
         if ($total_pages > 1) {
-            $pagination = $this->get_pagination_html($page, $total_pages, $total_entries);
+            $pagination = $this->generate_pagination($page, $total_pages, $total_entries);
         }
 
         wp_send_json_success(array(
             'html' => $output,
-            'pagination' => $pagination,
+            'pagination' => $pagination, // Will be empty string if no pagination needed
             'counts' => $counts
         ));
     }
 
     /**
      * Generate pagination HTML
-     *
-     * @param int $current_page Current page number
-     * @param int $total_pages Total number of pages
-     * @param int $total_entries Total number of log entries
-     * @return string HTML for pagination controls
      */
-    private function get_pagination_html($current_page, $total_pages, $total_entries) {
-        if ($total_pages <= 1) {
-            return '';
-        }
-
+    private function generate_pagination($current_page, $total_pages, $total_entries) {
         $output = '<div class="tablenav-pages">';
         $output .= '<span class="displaying-num">' . sprintf(__('%d items', 'logiq'), $total_entries) . '</span>';
         
@@ -151,11 +143,8 @@ class LogIQ_Ajax {
 
         // Current page info
         $output .= sprintf(
-            '<span class="paging-input"><label for="current-page-selector" class="screen-reader-text">%s</label><input class="current-page" id="current-page-selector" type="text" name="paged" value="%d" size="%d" aria-describedby="table-paging"><span class="tablenav-paging-text"> %s <span class="total-pages">%d</span></span></span>',
-            __('Current Page', 'logiq'),
+            '<span class="paging-input"><span class="tablenav-paging-text">%d of <span class="total-pages">%d</span></span></span>',
             $current_page,
-            strlen($total_pages),
-            __('of', 'logiq'),
             $total_pages
         );
 
@@ -182,7 +171,7 @@ class LogIQ_Ajax {
         }
 
         $output .= '</span></div>';
-
+        
         return $output;
     }
 
