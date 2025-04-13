@@ -1,0 +1,35 @@
+# WordPress specific
+wp-config.php
+wp-content/
+!wp-content/plugins/
+!wp-content/themes/
+
+# Log files
+*.log
+logiq-logs/
+
+# IDE specific
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Composer
+vendor/
+composer.lock
+
+# Node
+node_modules/
+package-lock.json
+
+# Build files
+dist/
+build/
+
+# Temporary files
+*.tmp
+*.temp 
