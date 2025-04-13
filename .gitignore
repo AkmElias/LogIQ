@@ -32,4 +32,9 @@ build/
 
 # Temporary files
 *.tmp
-*.temp 
+*.temp
+
+# Translation files
+languages/*.mo
+languages/*.po
+!languages/*.pot 

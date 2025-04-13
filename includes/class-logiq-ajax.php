@@ -27,11 +27,7 @@ class LogIQ_Ajax {
      * Get logs via AJAX
      */
     public function get_logs() {
-        check_ajax_referer('logiq_admin_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(__('You do not have permission to view logs.', 'logiq'));
-        }
+        LogIQ_Security::verify_admin_ajax();
 
         $log_file = logiq_get_log_file();
         $page = isset($_POST['page']) ? max(1, intval($_POST['page'])) : 1;
@@ -174,11 +170,7 @@ class LogIQ_Ajax {
      * Clear logs via AJAX
      */
     public function clear_logs() {
-        check_ajax_referer('logiq_admin_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(__('You do not have permission to clear logs.', 'logiq'));
-        }
+        LogIQ_Security::verify_admin_ajax();
 
         $log_file = logiq_get_log_file();
         
@@ -237,7 +229,7 @@ class LogIQ_Ajax {
         // Data
         $output .= sprintf(
             '<div class="log-data">%s</div>',
-            esc_html($log_data['data'])
+            LogIQ_Security::sanitize_log_data($log_data['data'])
         );
 
         $output .= '</div>';

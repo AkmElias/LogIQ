@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "makepot": "wp i18n make-pot . languages/logiq.pot --exclude=\"node_modules,vendor,tests\""
+  }
+} 

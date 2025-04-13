@@ -32,14 +32,28 @@ function logiq_init() {
     require_once LOGIQ_PLUGIN_DIR . 'includes/functions-logiq.php';
     require_once LOGIQ_PLUGIN_DIR . 'includes/class-logiq-admin.php';
     require_once LOGIQ_PLUGIN_DIR . 'includes/class-logiq-ajax.php';
+    require_once LOGIQ_PLUGIN_DIR . 'includes/class-logiq-security.php';
     
     // Initialize classes
     new LogIQ_Admin();
     new LogIQ_Ajax();
+    new LogIQ_Security();
 }
 
 // Initialize plugin
 add_action('plugins_loaded', 'logiq_init');
+
+/**
+ * Load plugin textdomain
+ */
+function logiq_load_textdomain() {
+    load_plugin_textdomain(
+        'logiq',
+        false,
+        dirname(plugin_basename(__FILE__)) . '/languages'
+    );
+}
+add_action('init', 'logiq_load_textdomain');
 
 // Activation Hook
 register_activation_hook(__FILE__, 'logiq_activate');
