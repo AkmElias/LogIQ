@@ -37,16 +37,16 @@
 
 ## 🛡️ Security
 
-- [ ] Restrict access to admins only
-- [ ] Escape output in templates
-- [ ] Sanitize inputs in AJAX
-- [ ] Use `check_ajax_referer()`
+- [X] Restrict access to admins only
+- [X] Escape output in templates
+- [X] Sanitize inputs in AJAX
+- [X] Use `check_ajax_referer()`
 
 ## 🌍 Internationalization
 
-- [ ] Load plugin textdomain
-- [ ] Wrap strings with `__()` and `_e()`
-- [ ] Generate `.pot` file
+- [X] Load plugin textdomain
+- [X] Wrap strings with `__()` and `_e()`
+- [X] Generate `.pot` file
 
 ## 🧪 Testing
 

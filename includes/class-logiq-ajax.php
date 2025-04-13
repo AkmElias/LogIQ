@@ -31,22 +31,43 @@ class LogIQ_Ajax {
 
         $log_file = logiq_get_log_file();
         $page = isset($_POST['page']) ? max(1, intval($_POST['page'])) : 1;
-        $per_page = 10; // Reduced from 50 to 10 for better testing
+        $level = isset($_POST['level']) ? sanitize_key($_POST['level']) : 'all';
+        $per_page = 10;
         
         if (!file_exists($log_file)) {
             wp_send_json_success(array(
                 'html' => '<p class="description">' . __('No logs found.', 'logiq') . '</p>',
                 'pagination' => '',
-                'total_pages' => 0,
-                'current_page' => 1
+                'counts' => array_fill_keys(['all', 'fatal', 'error', 'warning', 'deprecated', 'info', 'debug'], 0)
             ));
             return;
         }
 
-        // Read the log file
+        // Read logs
         $logs = file_get_contents($log_file);
         $log_entries = array_filter(explode(PHP_EOL, $logs));
-        $log_entries = array_reverse($log_entries); // Show newest first
+        $log_entries = array_reverse($log_entries);
+
+        // Count logs by level
+        $counts = array('all' => count($log_entries));
+        foreach (['fatal', 'error', 'warning', 'deprecated', 'info', 'debug'] as $log_level) {
+            $counts[$log_level] = count(array_filter($log_entries, function($entry) use ($log_level) {
+                $data = json_decode($entry, true);
+                return $data && isset($data['level']) && $data['level'] === $log_level;
+            }));
+        }
+        
+        // Filter by level if specified
+        if ($level !== 'all') {
+            $log_entries = array_filter($log_entries, function($entry) use ($level) {
+                $log_data = json_decode($entry, true);
+                // Check both the level and if it's a PHP deprecated notice
+                return $log_data && isset($log_data['level']) && (
+                    $log_data['level'] === $level || 
+                    ($level === 'deprecated' && strpos($log_data['data'], 'Deprecated:') !== false)
+                );
+            });
+        }
         
         // Calculate pagination
         $total_entries = count($log_entries);
@@ -84,9 +105,7 @@ class LogIQ_Ajax {
         wp_send_json_success(array(
             'html' => $output,
             'pagination' => $pagination,
-            'total_pages' => $total_pages,
-            'current_page' => $page,
-            'total_entries' => $total_entries
+            'counts' => $counts
         ));
     }
 
@@ -190,12 +209,20 @@ class LogIQ_Ajax {
      * @return string Formatted HTML
      */
     private function format_log_entry($log_data) {
-        $output = '<div class="log-entry">';
+        // Add data-level attribute to the log entry div
+        $level = isset($log_data['level']) ? esc_attr($log_data['level']) : 'info';
+        $output = sprintf('<div class="log-entry" data-level="%s">', $level);
         
         // Timestamp
         $output .= sprintf(
             '<div class="log-timestamp">%s</div>',
             esc_html($log_data['timestamp'])
+        );
+
+        // Level indicator
+        $output .= sprintf(
+            '<div class="log-level">%s</div>',
+            esc_html(strtoupper($level))
         );
 
         // Context

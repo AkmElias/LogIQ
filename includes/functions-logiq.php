@@ -11,6 +11,44 @@ if (!defined('ABSPATH')) {
 }
 
 /**
+ * Prepare data for logging by handling different types
+ *
+ * @param mixed $data The data to prepare
+ * @return string Prepared data
+ */
+function logiq_prepare_data($data) {
+    switch (true) {
+        case is_null($data):
+            return 'NULL';
+            
+        case is_bool($data):
+            return $data ? 'true' : 'false';
+            
+        case is_array($data):
+            return print_r($data, true);
+            
+        case is_object($data):
+            if ($data instanceof Exception || $data instanceof Error) {
+                return sprintf(
+                    "Exception: %s\nCode: %d\nFile: %s\nLine: %d\nTrace:\n%s",
+                    $data->getMessage(),
+                    $data->getCode(),
+                    $data->getFile(),
+                    $data->getLine(),
+                    $data->getTraceAsString()
+                );
+            }
+            return print_r($data, true);
+            
+        case is_resource($data):
+            return sprintf('Resource [%s]', get_resource_type($data));
+            
+        default:
+            return (string) $data;
+    }
+}
+
+/**
  * Get the WordPress debug log file path
  *
  * @return string
@@ -50,55 +88,62 @@ function logiq_get_log_file() {
 }
 
 /**
- * Main logging function
+ * Write data to log file
  *
- * @param mixed  $data     The data to log
- * @param string $context  Additional context information
- * @return bool           Whether the log was written successfully
+ * @param string $data The data to write
+ * @return bool True if successful, false otherwise
  */
-function logiq_log($data, $context = '') {
-    // Check if logging is enabled
-    if (!get_option('logiq_debug_enabled', false)) {
+function logiq_write_to_log($data) {
+    $log_file = logiq_get_log_file();
+    
+    // Create directory if it doesn't exist
+    $log_dir = dirname($log_file);
+    if (!file_exists($log_dir)) {
+        wp_mkdir_p($log_dir);
+    }
+    
+    // Write to file
+    return (bool) file_put_contents($log_file, $data, FILE_APPEND | LOCK_EX);
+}
+
+/**
+ * Log a message with context
+ *
+ * @param mixed $data The data to log
+ * @param string $level Log level (fatal, error, warning, info, debug, deprecated)
+ * @param string $context Optional. Context identifier for the log entry
+ * @param array $additional Optional. Additional context data
+ * @return bool True if logged successfully, false otherwise
+ */
+function logiq_log($data, $level = LOGIQ_INFO, $context = '', $additional = array()) {
+    // Check if debug logging is enabled
+    if (!get_option('logiq_debug_enabled', true)) {
         return false;
     }
+
+    // Get debug backtrace for file and line info
+    $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1)[0];
+
+    // Use provided file/line if available
+    $file = isset($additional['file']) ? $additional['file'] : $trace['file'];
+    $line = isset($additional['line']) ? $additional['line'] : $trace['line'];
 
     // Prepare log entry
     $log_entry = array(
         'timestamp' => current_time('mysql'),
-        'data'      => $data,
+        'level'     => $level,
         'context'   => $context,
-        'file'      => '',
-        'line'      => '',
-        'hook'      => current_filter(),
+        'file'      => str_replace(ABSPATH, '', $file),
+        'line'      => $line,
         'user'      => get_current_user_id(),
+        'data'      => logiq_prepare_data($data)
     );
-
-    // Get file and line information
-    $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1);
-    if (!empty($backtrace[0])) {
-        $log_entry['file'] = str_replace(ABSPATH, '', $backtrace[0]['file']);
-        $log_entry['line'] = $backtrace[0]['line'];
-    }
-
-    // Serialize data if it's an array or object
-    if (is_array($data) || is_object($data)) {
-        $log_entry['data'] = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-    }
 
     // Convert to JSON
-    $json_entry = json_encode($log_entry, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-
-    // Get log file path
-    $log_file = logiq_get_log_file();
+    $log_line = wp_json_encode($log_entry) . PHP_EOL;
 
     // Write to log file
-    $result = file_put_contents(
-        $log_file,
-        $json_entry . PHP_EOL,
-        FILE_APPEND | LOCK_EX
-    );
-
-    return $result !== false;
+    return logiq_write_to_log($log_line);
 }
 
 /**
@@ -128,4 +173,188 @@ function logiq_generate_test_logs() {
 }
 
 // Call this once from your plugin activation or manually to generate test data
-// add_action('init', 'logiq_generate_test_logs'); 
+// add_action('init', 'logiq_generate_test_logs');
+
+/**
+ * Register error handlers
+ */
+function logiq_register_error_handlers() {
+    // For deprecated notices
+    set_error_handler('logiq_error_handler', E_DEPRECATED | E_USER_DEPRECATED);
+    
+    // For fatal errors
+    register_shutdown_function('logiq_fatal_error_handler');
+}
+
+/**
+ * Error handler for deprecated notices
+ */
+function logiq_error_handler($errno, $errstr, $errfile, $errline) {
+    // Only handle deprecated notices
+    if ($errno === E_DEPRECATED || $errno === E_USER_DEPRECATED) {
+        logiq_log(
+            $errstr,
+            LOGIQ_DEPRECATED,
+            'deprecated_notice',
+            array(
+                'file' => $errfile,
+                'line' => $errline
+            )
+        );
+    }
+    // Don't stop PHP's error handling
+    return false;
+}
+
+/**
+ * Fatal error handler
+ */
+function logiq_fatal_error_handler() {
+    $error = error_get_last();
+    
+    if ($error !== null) {
+        $fatal_errors = array(
+            E_ERROR,
+            E_PARSE,
+            E_CORE_ERROR,
+            E_COMPILE_ERROR,
+            E_USER_ERROR,
+            E_RECOVERABLE_ERROR
+        );
+
+        if (in_array($error['type'], $fatal_errors)) {
+            // Simple file logging without using WordPress functions
+            $log_dir = dirname(__FILE__) . '/../logiq-logs';
+            $log_file = $log_dir . '/fatal-errors.log';
+            
+            // Create directory if it doesn't exist
+            if (!file_exists($log_dir)) {
+                mkdir($log_dir, 0755, true);
+            }
+
+            // Format the error message
+            $error_message = sprintf(
+                "[%s] Fatal Error: %s in %s on line %d\n",
+                date('Y-m-d H:i:s'),
+                $error['message'],
+                $error['file'],
+                $error['line']
+            );
+
+            // Write directly to file without using WordPress functions
+            error_log($error_message, 3, $log_file);
+        }
+    }
+}
+
+/**
+ * Helper function to log errors with stack trace
+ */
+function logiq_log_error($error_message, $error_type = LOGIQ_ERROR) {
+    $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+    $trace_output = array();
+    
+    foreach ($trace as $t) {
+        $trace_output[] = sprintf(
+            '%s:%d - %s%s%s()',
+            isset($t['file']) ? str_replace(ABSPATH, '', $t['file']) : 'unknown',
+            isset($t['line']) ? $t['line'] : 0,
+            isset($t['class']) ? $t['class'] : '',
+            isset($t['type']) ? $t['type'] : '',
+            $t['function']
+        );
+    }
+
+    logiq_log(
+        array(
+            'message' => $error_message,
+            'trace' => $trace_output
+        ),
+        $error_type,
+        'error'
+    );
+}
+
+/**
+ * Fallback logging function that doesn't depend on WordPress functions
+ */
+function logiq_fallback_log($message) {
+    $log_dir = dirname(__FILE__) . '/../logiq-logs';
+    $log_file = $log_dir . '/fallback.log';
+    
+    if (!file_exists($log_dir)) {
+        mkdir($log_dir, 0755, true);
+    }
+
+    $log_entry = sprintf(
+        "[%s] %s\n",
+        date('Y-m-d H:i:s'),
+        $message
+    );
+
+    error_log($log_entry, 3, $log_file);
+}
+
+/**
+ * Test all log levels and features
+ */
+function logiq_test_all_levels() {
+    // Test INFO level
+    logiq_log(
+        "This is a test info message",
+        LOGIQ_INFO,
+        'test_info'
+    );
+
+    // Test DEBUG level
+    logiq_log(
+        array('debug' => 'test', 'data' => array(1, 2, 3)),
+        LOGIQ_DEBUG,
+        'test_debug'
+    );
+
+    // Test WARNING level
+    logiq_log(
+        "This is a test warning",
+        LOGIQ_WARNING,
+        'test_warning'
+    );
+
+    // Test ERROR level
+    logiq_log(
+        "This is a test error",
+        LOGIQ_ERROR,
+        'test_error'
+    );
+
+    // Test DEPRECATED level
+    trigger_error(
+        "This is a test deprecated notice",
+        E_USER_DEPRECATED
+    );
+
+    // Test FATAL level (simulated)
+    logiq_log(
+        "This is a simulated fatal error",
+        LOGIQ_FATAL,
+        'test_fatal'
+    );
+
+    // Test Exception logging
+    try {
+        throw new Exception("Test exception");
+    } catch (Exception $e) {
+        logiq_log_exception($e, 'test_exception');
+    }
+
+    // Test different data types
+    logiq_log(null, LOGIQ_INFO, 'test_null');
+    logiq_log(true, LOGIQ_INFO, 'test_boolean');
+    logiq_log(array('test' => 'array'), LOGIQ_INFO, 'test_array');
+    logiq_log(new stdClass(), LOGIQ_INFO, 'test_object');
+    
+    // Test error with stack trace
+    logiq_log_error("Test error with stack trace");
+
+    return "Test logs generated successfully. Please check the log viewer.";
+} 

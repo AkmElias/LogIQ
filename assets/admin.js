@@ -1,6 +1,18 @@
 jQuery(document).ready(function($) {
+    // Current active tab
+    let currentLevel = 'all';
+
     // Load logs on page load
     loadLogs();
+
+    // Tab switching
+    $('.nav-tab-wrapper .nav-tab').on('click', function(e) {
+        e.preventDefault();
+        $('.nav-tab-wrapper .nav-tab').removeClass('nav-tab-active');
+        $(this).addClass('nav-tab-active');
+        currentLevel = $(this).data('level');
+        loadLogs(1);
+    });
 
     // Refresh logs button
     $('#logiq-refresh-logs').on('click', function() {
@@ -33,7 +45,8 @@ jQuery(document).ready(function($) {
             data: {
                 action: 'logiq_get_logs',
                 nonce: logiqAdmin.nonce,
-                page: page
+                page: page,
+                level: currentLevel
             },
             beforeSend: function() {
                 $('#logiq-log-viewer').html('<p class="description">Loading logs...</p>');
@@ -46,6 +59,13 @@ jQuery(document).ready(function($) {
                     } else {
                         $('#logiq-pagination').empty();
                     }
+                    
+                    // Update tab counts
+                    $('.nav-tab').each(function() {
+                        var level = $(this).data('level');
+                        var count = response.data.counts[level];
+                        $(this).html($(this).text().split('(')[0] + ' (' + count + ')');
+                    });
                 } else {
                     $('#logiq-log-viewer').html('<p class="error">' + response.data + '</p>');
                 }

@@ -11,6 +11,16 @@
         </button>
     </div>
 
+    <div class="nav-tab-wrapper">
+        <a href="#" class="nav-tab nav-tab-active" data-level="all"><?php esc_html_e('All Logs', 'logiq'); ?> <span class="count">(0)</span></a>
+        <a href="#" class="nav-tab" data-level="fatal"><?php esc_html_e('Fatal', 'logiq'); ?> <span class="count">(0)</span></a>
+        <a href="#" class="nav-tab" data-level="error"><?php esc_html_e('Errors', 'logiq'); ?> <span class="count">(0)</span></a>
+        <a href="#" class="nav-tab" data-level="warning"><?php esc_html_e('Warnings', 'logiq'); ?> <span class="count">(0)</span></a>
+        <a href="#" class="nav-tab" data-level="deprecated"><?php esc_html_e('Deprecated', 'logiq'); ?> <span class="count">(0)</span></a>
+        <a href="#" class="nav-tab" data-level="info"><?php esc_html_e('Info', 'logiq'); ?> <span class="count">(0)</span></a>
+        <a href="#" class="nav-tab" data-level="debug"><?php esc_html_e('Debug', 'logiq'); ?> <span class="count">(0)</span></a>
+    </div>
+
     <div id="logiq-log-viewer">
         <!-- Logs will be loaded here via AJAX -->
     </div>

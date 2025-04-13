@@ -127,19 +127,7 @@ class LogIQ_Admin {
                 <?php submit_button(); ?>
             </form>
 
-            <div class="logiq-actions">
-                <button type="button" class="button" id="logiq-refresh-logs">
-                    <?php _e('Refresh Logs', 'logiq'); ?>
-                </button>
-                <button type="button" class="button" id="logiq-clear-logs">
-                    <?php _e('Clear Logs', 'logiq'); ?>
-                </button>
-            </div>
-
-            <div id="logiq-log-viewer">
-                <div class="loading"><?php _e('Loading logs...', 'logiq'); ?></div>
-            </div>
-            <div id="logiq-pagination"></div>
+            <?php include LOGIQ_PLUGIN_DIR . 'templates/admin-log-viewer.php'; ?>
         </div>
         <?php
     }
