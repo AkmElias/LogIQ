@@ -486,4 +486,57 @@
     background: #fff;
     border: 1px solid #ccd0d4;
     border-radius: 3px;
+}
+
+/* Add these to your existing CSS */
+.log-entry[data-context="parse_error"],
+.log-entry[data-context="fatal_error"] {
+    background-color: #fff8f8;
+    border-left-color: #dc3545;
+}
+
+.log-entry[data-context="php_warning"] {
+    background-color: #fff8f0;
+    border-left-color: #ffa700;
+}
+
+.log-entry[data-context="php_notice"] {
+    background-color: #f8f9fa;
+    border-left-color: #0099cc;
+}
+
+.log-entry[data-context="php_deprecated"] {
+    background-color: #f8f9fa;
+    border-left-color: #6c757d;
+}
+
+/* Make the error type more prominent */
+.log-level {
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 8px;
+}
+
+/* Add icons for different error types */
+.log-entry[data-context="parse_error"] .log-level::before,
+.log-entry[data-context="fatal_error"] .log-level::before {
+    content: "⚠️";
+    margin-right: 5px;
+}
+
+.log-entry[data-context="php_warning"] .log-level::before {
+    content: "⚡";
+    margin-right: 5px;
+}
+
+.log-entry[data-context="php_notice"] .log-level::before {
+    content: "ℹ️";
+    margin-right: 5px;
+}
+
+.log-entry[data-context="php_deprecated"] .log-level::before {
+    content: "⌛";
+    margin-right: 5px;
 } 

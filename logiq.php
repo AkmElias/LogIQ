@@ -44,9 +44,11 @@ function logiq_init() {
     
     // Now register the error handlers after functions are loaded
     if (get_option('logiq_debug_enabled', true)) {
-        // Register fatal error handler
+        // Make sure these are only registered once
+        remove_action('shutdown', 'logiq_fatal_error_handler'); // Remove if exists
+        remove_action('error_handler', 'logiq_error_handler'); // Remove if exists
+        
         register_shutdown_function('logiq_fatal_error_handler');
-        // Register deprecated notice handler
         set_error_handler('logiq_error_handler', E_DEPRECATED | E_USER_DEPRECATED);
     }
     

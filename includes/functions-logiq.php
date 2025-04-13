@@ -79,6 +79,7 @@ function logiq_get_log_file() {
         }
         return WP_CONTENT_DIR . '/debug.log';
     }
+    // asd
 
     // Check for default WordPress debug log
     $default_log = WP_CONTENT_DIR . '/debug.log';
@@ -173,40 +174,50 @@ function logiq_check_log_rotation() {
  * @return bool True if logged successfully, false otherwise
  */
 function logiq_log($data, $level = LOGIQ_INFO, $context = '', $additional = array()) {
-    if (!logiq_check_rate_limit()) {
-        error_log('LogIQ: Rate limit exceeded');
-        return false;
+    static $logged_messages = array();
+    
+    // Create a unique key for this message
+    $key = md5(serialize(array($data, $level, $context)));
+    
+    // Only log if we haven't seen this exact message before
+    if (!isset($logged_messages[$key])) {
+        $logged_messages[$key] = true;
+        if (!logiq_check_rate_limit()) {
+            error_log('LogIQ: Rate limit exceeded');
+            return false;
+        }
+
+        // Check if debug logging is enabled
+        if (!get_option('logiq_debug_enabled', true)) {
+            return false;
+        }
+
+        // Get debug backtrace for file and line info
+        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1)[0];
+
+        // Use provided file/line if available
+        $file = isset($additional['file']) ? $additional['file'] : $trace['file'];
+        $line = isset($additional['line']) ? $additional['line'] : $trace['line'];
+
+        // Prepare log entry
+        $log_entry = array(
+            'timestamp' => current_time('mysql'),
+            'level'     => $level,
+            'context'   => $context,
+            'file'      => str_replace(ABSPATH, '', $file),
+            'line'      => $line,
+            'user'      => get_current_user_id(),
+            'data'      => logiq_prepare_data($data)
+        );
+
+        // Convert to JSON
+        $log_line = wp_json_encode($log_entry) . PHP_EOL;
+
+        // Write to log file
+        logiq_check_log_rotation();
+        return logiq_write_to_log($log_line);
     }
-
-    // Check if debug logging is enabled
-    if (!get_option('logiq_debug_enabled', true)) {
-        return false;
-    }
-
-    // Get debug backtrace for file and line info
-    $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1)[0];
-
-    // Use provided file/line if available
-    $file = isset($additional['file']) ? $additional['file'] : $trace['file'];
-    $line = isset($additional['line']) ? $additional['line'] : $trace['line'];
-
-    // Prepare log entry
-    $log_entry = array(
-        'timestamp' => current_time('mysql'),
-        'level'     => $level,
-        'context'   => $context,
-        'file'      => str_replace(ABSPATH, '', $file),
-        'line'      => $line,
-        'user'      => get_current_user_id(),
-        'data'      => logiq_prepare_data($data)
-    );
-
-    // Convert to JSON
-    $log_line = wp_json_encode($log_entry) . PHP_EOL;
-
-    // Write to log file
-    logiq_check_log_rotation();
-    return logiq_write_to_log($log_line);
+    return false;
 }
 
 /**

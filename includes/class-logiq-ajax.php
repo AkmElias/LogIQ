@@ -49,34 +49,58 @@ class LogIQ_Ajax {
         $log_entries = array_filter(explode(PHP_EOL, $logs));
         $log_entries = array_reverse($log_entries);
 
-        // Count logs by level
-        $counts = array('all' => count($log_entries));
+        // Parse all entries and deduplicate
+        $parsed_entries = [];
+        $seen_entries = [];
+
+        foreach ($log_entries as $entry) {
+            $parsed = $this->parse_log_entry($entry);
+            
+            // Create a unique key for each log entry based on timestamp, message, and file
+            $unique_key = md5($parsed['timestamp'] . $parsed['data'] . $parsed['file'] . $parsed['line']);
+            
+            // Only keep the entry if we haven't seen it before
+            if (!isset($seen_entries[$unique_key])) {
+                $parsed_entries[] = $parsed;
+                $seen_entries[$unique_key] = true;
+            }
+        }
+
+        // Count logs by level (using deduplicated entries)
+        $counts = array('all' => count($parsed_entries));
         foreach (['fatal', 'error', 'warning', 'deprecated', 'info', 'debug'] as $log_level) {
-            $counts[$log_level] = count(array_filter($log_entries, function($entry) use ($log_level) {
-                $data = json_decode($entry, true);
-                return $data && isset($data['level']) && $data['level'] === $log_level;
+            $counts[$log_level] = count(array_filter($parsed_entries, function($entry) use ($log_level) {
+                return $entry['level'] === $log_level;
             }));
         }
         
         // Filter by level if specified
         if ($level !== 'all') {
-            $log_entries = array_filter($log_entries, function($entry) use ($level) {
-                $log_data = json_decode($entry, true);
-                // Check both the level and if it's a PHP deprecated notice
-                return $log_data && isset($log_data['level']) && (
-                    $log_data['level'] === $level || 
-                    ($level === 'deprecated' && strpos($log_data['data'], 'Deprecated:') !== false)
-                );
+            $parsed_entries = array_filter($parsed_entries, function($entry) use ($level) {
+                // Strict level matching
+                if ($entry['level'] === $level) {
+                    return true;
+                }
+                
+                // Special handling for deprecated notices
+                if ($level === 'deprecated' && 
+                    (strpos($entry['context'], 'deprecated') !== false || 
+                     strpos($entry['data'], 'deprecated') !== false ||
+                     strpos($entry['data'], '_load_textdomain_just_in_time') !== false)) {
+                    return true;
+                }
+                
+                return false;
             });
         }
         
         // Calculate pagination
-        $total_entries = count($log_entries);
+        $total_entries = count($parsed_entries);
         $total_pages = ceil($total_entries / $per_page);
         $offset = ($page - 1) * $per_page;
         
         // Slice the array for current page
-        $current_page_entries = array_slice($log_entries, $offset, $per_page);
+        $current_page_entries = array_slice($parsed_entries, $offset, $per_page);
 
         $output = '';
         $pagination = '';
@@ -84,14 +108,7 @@ class LogIQ_Ajax {
         // Generate logs output
         if (!empty($current_page_entries)) {
             foreach ($current_page_entries as $entry) {
-                if (empty($entry)) {
-                    continue;
-                }
-                $log_data = json_decode($entry, true);
-                if (!$log_data) {
-                    continue;
-                }
-                $output .= $this->format_log_entry($log_data);
+                $output .= $this->format_log_entry($entry);
             }
         }
 
@@ -205,9 +222,10 @@ class LogIQ_Ajax {
      * @return string Formatted HTML
      */
     private function format_log_entry($log_data) {
-        // Add data-level attribute to the log entry div
         $level = isset($log_data['level']) ? esc_attr($log_data['level']) : 'info';
-        $output = sprintf('<div class="log-entry" data-level="%s">', $level);
+        $context = isset($log_data['context']) ? esc_attr($log_data['context']) : '';
+        
+        $output = sprintf('<div class="log-entry" data-level="%s" data-context="%s">', $level, $context);
         
         // Timestamp
         $output .= sprintf(
@@ -215,22 +233,15 @@ class LogIQ_Ajax {
             esc_html($log_data['timestamp'])
         );
 
-        // Level indicator
+        // Level indicator with context
         $output .= sprintf(
-            '<div class="log-level">%s</div>',
-            esc_html(strtoupper($level))
+            '<div class="log-level">%s%s</div>',
+            esc_html(strtoupper($level)),
+            $context ? ' - ' . esc_html($context) : ''
         );
 
-        // Context
-        if (!empty($log_data['context'])) {
-            $output .= sprintf(
-                '<div class="log-context">%s</div>',
-                esc_html($log_data['context'])
-            );
-        }
-
         // File and line
-        if (!empty($log_data['file']) && !empty($log_data['line'])) {
+        if (!empty($log_data['file'])) {
             $output .= sprintf(
                 '<div class="log-file">%s:%d</div>',
                 esc_html($log_data['file']),
@@ -238,25 +249,105 @@ class LogIQ_Ajax {
             );
         }
 
-        // User
-        if (!empty($log_data['user'])) {
-            $user = get_user_by('id', $log_data['user']);
-            if ($user) {
-                $output .= sprintf(
-                    '<div class="log-user">%s</div>',
-                    esc_html($user->display_name)
-                );
-            }
+        // Data/Message
+        $output .= '<div class="log-data">';
+        if (is_array($log_data['data'])) {
+            $output .= '<pre>' . esc_html(print_r($log_data['data'], true)) . '</pre>';
+        } else {
+            $output .= '<pre>' . esc_html($log_data['data']) . '</pre>';
         }
-
-        // Data
-        $output .= sprintf(
-            '<div class="log-data">%s</div>',
-            LogIQ_Security::sanitize_log_data($log_data['data'])
-        );
-
         $output .= '</div>';
 
+        $output .= '</div>';
         return $output;
+    }
+
+    private function parse_log_entry($entry) {
+        // First try to parse as JSON
+        $json_data = json_decode($entry, true);
+        if ($json_data && isset($json_data['level'])) {
+            // Clean up JSON data to ensure consistent format
+            $json_data['data'] = trim($json_data['data']);
+            return $json_data;
+        }
+
+        // If not JSON, parse PHP error log format
+        if (preg_match('/^\[(.*?)\] (.+)$/', $entry, $matches)) {
+            $timestamp = $matches[1];
+            $message = $matches[2];
+
+            // Initialize variables
+            $level = 'info';
+            $context = '';
+
+            // More specific pattern matching for error types
+            if (strpos($message, 'PHP Parse error:') !== false) {
+                $level = 'fatal';
+                $context = 'parse_error';
+            } elseif (strpos($message, 'PHP Fatal error:') !== false) {
+                $level = 'fatal';
+                $context = 'fatal_error';
+            } elseif (strpos($message, 'PHP Warning:') !== false) {
+                $level = 'warning';
+                $context = 'php_warning';
+            } elseif (strpos($message, 'PHP Deprecated:') !== false || 
+                      strpos($message, 'Function _load_textdomain_just_in_time was called') !== false ||
+                      preg_match('/deprecated(?:\s+notice)?/i', $message)) {
+                $level = 'deprecated';
+                $context = 'php_deprecated';
+            } elseif (strpos($message, 'PHP Notice:') !== false) {
+                $level = 'info';
+                $context = 'php_notice';
+            }
+
+            // Extract file and line information
+            $file = '';
+            $line = 0;
+            if (preg_match('/in (.*?) on line (\d+)/', $message, $loc_matches)) {
+                $file = str_replace(ABSPATH, '', $loc_matches[1]);
+                $line = $loc_matches[2];
+            }
+
+            // Clean up the message more thoroughly
+            $message = preg_replace('/PHP (?:Parse error|Fatal error|Warning|Notice|Deprecated):\s*/', '', $message);
+            $message = preg_replace('/in .*? on line \d+/', '', $message);
+            $message = preg_replace('/<strong>.*?<\/strong>/', '', $message);
+            $message = preg_replace('/\s+/', ' ', $message); // Normalize whitespace
+            $message = strip_tags($message);
+            $message = trim($message);
+
+            // Special handling for textdomain deprecation notices
+            if (strpos($message, 'Function _load_textdomain_just_in_time was called') !== false) {
+                $level = 'deprecated';
+                $context = 'textdomain_deprecated';
+            }
+
+            // Special handling for dynamic property deprecation notices
+            if (strpos($message, 'Creation of dynamic property') !== false) {
+                $level = 'deprecated';
+                $context = 'property_deprecated';
+            }
+
+            return array(
+                'timestamp' => $timestamp,
+                'level' => $level,
+                'context' => $context,
+                'file' => $file,
+                'line' => $line,
+                'data' => $message,
+                'user' => get_current_user_id()
+            );
+        }
+
+        // Fallback for unrecognized format
+        return array(
+            'timestamp' => current_time('mysql'),
+            'level' => 'info',
+            'context' => 'unknown',
+            'file' => '',
+            'line' => 0,
+            'data' => trim($entry),
+            'user' => get_current_user_id()
+        );
     }
 } 

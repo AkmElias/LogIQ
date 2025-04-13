@@ -1,41 +1,101 @@
-# Copyright (C) 2024 A K M Elias
+# Copyright (C) 2025 A K M Elias
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
 "Project-Id-Version: LogIQ 1.0.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/logiq\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/LogIQ\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-03-21T12:00:00+00:00\n"
+"POT-Creation-Date: 2025-04-13T16:59:35+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"X-Generator: WP-CLI 2.8.1\n"
+"X-Generator: WP-CLI 2.10.0\n"
 "X-Domain: logiq\n"
 
-#: includes/class-logiq-ajax.php:35
-msgid "No logs found."
+#. Plugin Name of the plugin
+#: logiq.php
+msgid "LogIQ"
 msgstr ""
 
-#: includes/class-logiq-ajax.php:89
-msgid "Failed to clear logs."
+#. Plugin URI of the plugin
+#: logiq.php
+msgid "https://wordpress.org/plugins/logiq/"
 msgstr ""
 
-#: includes/class-logiq-ajax.php:93
-msgid "Logs cleared successfully."
+#. Description of the plugin
+#: logiq.php
+msgid "Intelligent Debugging and Structured Logging for WordPress Developers"
 msgstr ""
 
-#: includes/class-logiq-security.php:45
+#. Author of the plugin
+#: logiq.php
+msgid "A K M Elias"
+msgstr ""
+
+#. Author URI of the plugin
+#: logiq.php
+msgid "https://akmelias.com"
+msgstr ""
+
+#: includes/class-logiq-admin.php:32
+#: includes/class-logiq-admin.php:33
+msgid "LogIQ Debug"
+msgstr ""
+
+#: includes/class-logiq-admin.php:87
+msgid "Are you sure you want to clear all logs?"
+msgstr ""
+
+#: includes/class-logiq-admin.php:98
+#: includes/class-logiq-security.php:49
 msgid "You do not have sufficient permissions to access this page."
 msgstr ""
 
-#: includes/class-logiq-security.php:84
-msgid "Invalid security token."
+#: includes/class-logiq-admin.php:111
+msgid "Debug Mode"
 msgstr ""
 
-#: includes/class-logiq-security.php:88
-msgid "You do not have permission to perform this action."
+#: includes/class-logiq-admin.php:118
+msgid "Enable debug logging"
+msgstr ""
+
+#: includes/class-logiq-admin.php:121
+msgid "When enabled, LogIQ will log debug information to the log file."
+msgstr ""
+
+#: includes/class-logiq-ajax.php:40
+#: includes/class-logiq-ajax.php:99
+msgid "No logs found."
+msgstr ""
+
+#: includes/class-logiq-ajax.php:119
+msgid "%d items"
+msgstr ""
+
+#: includes/class-logiq-ajax.php:127
+msgid "First page"
+msgstr ""
+
+#: includes/class-logiq-ajax.php:138
+msgid "Previous page"
+msgstr ""
+
+#: includes/class-logiq-ajax.php:156
+msgid "Next page"
+msgstr ""
+
+#: includes/class-logiq-ajax.php:167
+msgid "Last page"
+msgstr ""
+
+#: includes/class-logiq-ajax.php:194
+msgid "Failed to clear logs."
+msgstr ""
+
+#: includes/class-logiq-ajax.php:198
+msgid "Logs cleared successfully."
 msgstr ""
 
 #: templates/admin-log-viewer.php:2
@@ -50,46 +110,30 @@ msgstr ""
 msgid "Clear Logs"
 msgstr ""
 
-#: includes/class-logiq-admin.php:42
-msgid "LogIQ Settings"
+#: templates/admin-log-viewer.php:17
+msgid "All Logs"
 msgstr ""
 
-#: includes/class-logiq-admin.php:43
-msgid "LogIQ"
+#: templates/admin-log-viewer.php:18
+msgid "Fatal"
 msgstr ""
 
-#: includes/class-logiq-admin.php:60
-msgid "Enable Debug Logging"
+#: templates/admin-log-viewer.php:19
+msgid "Errors"
 msgstr ""
 
-#: includes/class-logiq-admin.php:67
-msgid "Settings saved."
+#: templates/admin-log-viewer.php:20
+msgid "Warnings"
 msgstr ""
 
-#: includes/class-logiq-ajax.php:123
-msgid "%d items"
+#: templates/admin-log-viewer.php:21
+msgid "Info"
 msgstr ""
 
-#: includes/class-logiq-ajax.php:145
-msgid "First page"
+#: templates/admin-log-viewer.php:22
+msgid "Debug"
 msgstr ""
 
-#: includes/class-logiq-ajax.php:156
-msgid "Previous page"
+#: templates/admin-log-viewer.php:23
+msgid "Deprecated"
 msgstr ""
-
-#: includes/class-logiq-ajax.php:164
-msgid "Current Page"
-msgstr ""
-
-#: includes/class-logiq-ajax.php:167
-msgid "of"
-msgstr ""
-
-#: includes/class-logiq-ajax.php:175
-msgid "Next page"
-msgstr ""
-
-#: includes/class-logiq-ajax.php:186
-msgid "Last page"
-msgstr "" 
