@@ -45,11 +45,48 @@ class LogIQ_Admin {
             'logiq_settings',
             'logiq_debug_enabled',
             array(
-                'type'              => 'boolean',
-                'sanitize_callback' => 'rest_sanitize_boolean',
-                'default'           => false,
+                'type' => 'boolean',
+                'sanitize_callback' => array($this, 'handle_debug_toggle'),
+                'default' => false,
             )
         );
+    }
+
+    /**
+     * Handle debug toggle and update WP_DEBUG
+     */
+    public function handle_debug_toggle($value) {
+        $value = (bool) $value;
+        
+        // Get the wp-config.php file path
+        $config_file = ABSPATH . 'wp-config.php';
+        
+        if (file_exists($config_file)) {
+            $config_content = file_get_contents($config_file);
+            
+            if ($value) {
+                // Enable debug
+                $config_content = preg_replace(
+                    "/(define\s*\(\s*'WP_DEBUG'\s*,\s*)(?:true|false)(\s*\)\s*;)/i",
+                    "$1true$2",
+                    $config_content
+                );
+            } else {
+                // Disable debug
+                $config_content = preg_replace(
+                    "/(define\s*\(\s*'WP_DEBUG'\s*,\s*)(?:true|false)(\s*\)\s*;)/i",
+                    "$1false$2",
+                    $config_content
+                );
+            }
+            
+            // Write the changes back to wp-config.php
+            if (is_writable($config_file)) {
+                file_put_contents($config_file, $config_content);
+            }
+        }
+        
+        return $value;
     }
 
     /**
@@ -97,9 +134,20 @@ class LogIQ_Admin {
         if (!current_user_can('manage_options')) {
             wp_die(__('You do not have sufficient permissions to access this page.', 'logiq'));
         }
+        
+        // Check if wp-config.php is writable
+        $config_file = ABSPATH . 'wp-config.php';
+        $config_writable = is_writable($config_file);
+        
         ?>
         <div class="wrap">
             <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
+            
+            <?php if (!$config_writable): ?>
+            <div class="notice notice-warning">
+                <p><?php _e('Warning: wp-config.php is not writable. Debug settings may need to be updated manually.', 'logiq'); ?></p>
+            </div>
+            <?php endif; ?>
             
             <form method="post" action="options.php">
                 <?php

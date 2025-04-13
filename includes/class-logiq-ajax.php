@@ -243,18 +243,21 @@ class LogIQ_Ajax {
         // File and line
         if (!empty($log_data['file'])) {
             $output .= sprintf(
-                '<div class="log-file">%s:%d</div>',
+                '<div class="log-file" title="%s">%s:%d</div>',
+                esc_attr($log_data['file']),
                 esc_html($log_data['file']),
                 intval($log_data['line'])
             );
         }
 
-        // Data/Message
+        // Data/Message with better wrapping
         $output .= '<div class="log-data">';
         if (is_array($log_data['data'])) {
             $output .= '<pre>' . esc_html(print_r($log_data['data'], true)) . '</pre>';
         } else {
-            $output .= '<pre>' . esc_html($log_data['data']) . '</pre>';
+            // Format long lines better
+            $message = esc_html($log_data['data']);
+            $output .= '<pre>' . $message . '</pre>';
         }
         $output .= '</div>';
 
@@ -263,91 +266,50 @@ class LogIQ_Ajax {
     }
 
     private function parse_log_entry($entry) {
-        // First try to parse as JSON
-        $json_data = json_decode($entry, true);
-        if ($json_data && isset($json_data['level'])) {
-            // Clean up JSON data to ensure consistent format
-            $json_data['data'] = trim($json_data['data']);
-            return $json_data;
+        if (empty($entry)) {
+            return null;
         }
 
-        // If not JSON, parse PHP error log format
-        if (preg_match('/^\[(.*?)\] (.+)$/', $entry, $matches)) {
-            $timestamp = $matches[1];
-            $message = $matches[2];
-
-            // Initialize variables
-            $level = 'info';
-            $context = '';
-
-            // More specific pattern matching for error types
-            if (strpos($message, 'PHP Parse error:') !== false) {
-                $level = 'fatal';
-                $context = 'parse_error';
-            } elseif (strpos($message, 'PHP Fatal error:') !== false) {
-                $level = 'fatal';
-                $context = 'fatal_error';
-            } elseif (strpos($message, 'PHP Warning:') !== false) {
-                $level = 'warning';
-                $context = 'php_warning';
-            } elseif (strpos($message, 'PHP Deprecated:') !== false || 
-                      strpos($message, 'Function _load_textdomain_just_in_time was called') !== false ||
-                      preg_match('/deprecated(?:\s+notice)?/i', $message)) {
-                $level = 'deprecated';
-                $context = 'php_deprecated';
-            } elseif (strpos($message, 'PHP Notice:') !== false) {
-                $level = 'info';
-                $context = 'php_notice';
-            }
-
-            // Extract file and line information
-            $file = '';
-            $line = 0;
-            if (preg_match('/in (.*?) on line (\d+)/', $message, $loc_matches)) {
-                $file = str_replace(ABSPATH, '', $loc_matches[1]);
-                $line = $loc_matches[2];
-            }
-
-            // Clean up the message more thoroughly
-            $message = preg_replace('/PHP (?:Parse error|Fatal error|Warning|Notice|Deprecated):\s*/', '', $message);
-            $message = preg_replace('/in .*? on line \d+/', '', $message);
-            $message = preg_replace('/<strong>.*?<\/strong>/', '', $message);
-            $message = preg_replace('/\s+/', ' ', $message); // Normalize whitespace
-            $message = strip_tags($message);
-            $message = trim($message);
-
-            // Special handling for textdomain deprecation notices
-            if (strpos($message, 'Function _load_textdomain_just_in_time was called') !== false) {
-                $level = 'deprecated';
-                $context = 'textdomain_deprecated';
-            }
-
-            // Special handling for dynamic property deprecation notices
-            if (strpos($message, 'Creation of dynamic property') !== false) {
-                $level = 'deprecated';
-                $context = 'property_deprecated';
-            }
-
-            return array(
-                'timestamp' => $timestamp,
-                'level' => $level,
-                'context' => $context,
-                'file' => $file,
-                'line' => $line,
-                'data' => $message,
-                'user' => get_current_user_id()
-            );
-        }
-
-        // Fallback for unrecognized format
-        return array(
+        // Default values for required fields
+        $parsed = array(
             'timestamp' => current_time('mysql'),
             'level' => 'info',
             'context' => 'unknown',
             'file' => '',
             'line' => 0,
-            'data' => trim($entry),
+            'data' => '',
             'user' => get_current_user_id()
         );
+
+        // First try to parse as JSON
+        $json_data = json_decode($entry, true);
+        if ($json_data && is_array($json_data)) {
+            return array_merge($parsed, array_intersect_key($json_data, $parsed));
+        }
+
+        // Parse PHP error log format with better error handling
+        if (preg_match('/^\[(.*?)\] (.+)$/', $entry, $matches)) {
+            $parsed['timestamp'] = $matches[1];
+            $message = $matches[2];
+
+            // More specific pattern matching for error types
+            if (preg_match('/PHP (?:(Parse|Fatal|Warning|Notice|Deprecated)) (?:error|warning|notice):\s*(.+?)(?:\s+in\s+(.+?)\s+on\s+line\s+(\d+))?$/i', $message, $error_matches)) {
+                $error_type = strtolower($error_matches[1]);
+                $parsed['level'] = $error_type === 'parse' || $error_type === 'fatal' ? 'fatal' :
+                                  ($error_type === 'warning' ? 'warning' :
+                                  ($error_type === 'deprecated' ? 'deprecated' : 'info'));
+                $parsed['context'] = 'php_' . $error_type;
+                $parsed['data'] = $error_matches[2];
+                
+                if (!empty($error_matches[3])) {
+                    $parsed['file'] = str_replace(ABSPATH, '', $error_matches[3]);
+                    $parsed['line'] = intval($error_matches[4]);
+                }
+            } else {
+                $parsed['data'] = $message;
+            }
+        }
+
+        return $parsed;
     }
 } 

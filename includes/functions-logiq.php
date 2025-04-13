@@ -431,4 +431,36 @@ function logiq_test_all_levels() {
     logiq_log_error("Test error with stack trace");
 
     return "Test logs generated successfully. Please check the log viewer.";
+}
+
+function logiq_check_system_compatibility() {
+    $issues = array();
+    
+    // Check PHP version
+    if (version_compare(PHP_VERSION, '7.4', '<')) {
+        $issues[] = sprintf(
+            __('LogIQ requires PHP 7.4 or higher. Your current PHP version is %s.', 'logiq'),
+            PHP_VERSION
+        );
+    }
+    
+    // Check WordPress version
+    global $wp_version;
+    if (version_compare($wp_version, '5.8', '<')) {
+        $issues[] = sprintf(
+            __('LogIQ requires WordPress 5.8 or higher. Your current WordPress version is %s.', 'logiq'),
+            $wp_version
+        );
+    }
+    
+    // Check log directory permissions
+    $log_dir = dirname(__FILE__) . '/logiq-logs';
+    if (file_exists($log_dir) && !is_writable($log_dir)) {
+        $issues[] = sprintf(
+            __('Log directory %s is not writable. Please check permissions.', 'logiq'),
+            esc_html($log_dir)
+        );
+    }
+    
+    return $issues;
 } 

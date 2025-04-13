@@ -91,7 +91,7 @@ LogIQ implements several security measures:
 - Rate limiting to prevent log flooding
 - Proper data sanitization
 - Admin-only access control
-- Secure file storage
+- Secure log file storage
 - Automatic log rotation
 - XSS prevention
 
@@ -158,7 +158,4 @@ Developed by [A K M Elias](https://akmelias.com)
 
 ## 🔄 Changelog
 
-### [1.0.0] - 2024-04-13
-Initial release with comprehensive logging features, beautiful interface, and robust security measures.
-
-See [CHANGELOG.md](CHANGELOG.md) for detailed version history. 
+See [CHANGELOG.md](CHANGELOG.md) for all version updates. 

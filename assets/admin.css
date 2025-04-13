@@ -15,13 +15,19 @@
     box-shadow: 0 1px 1px rgba(0,0,0,.04);
     padding: 20px;
     margin-bottom: 20px;
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 .log-entry {
     border-bottom: 1px solid #eee;
-    padding: 10px 0;
+    padding: 15px;
     margin-bottom: 10px;
     border-left: 4px solid #ccc;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    overflow-x: auto;
+    max-width: 100%;
 }
 
 .log-entry:last-child {
@@ -65,10 +71,10 @@
 }
 
 .log-file {
-    color: #666;
-    font-family: monospace;
+    word-break: break-all;
     font-size: 12px;
-    margin-bottom: 5px;
+    color: #666;
+    margin: 5px 0;
 }
 
 .log-user {
@@ -84,6 +90,16 @@
     font-family: monospace;
     white-space: pre-wrap;
     word-wrap: break-word;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.log-data pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-x: auto;
+    max-width: 100%;
 }
 
 .tablenav-pages {

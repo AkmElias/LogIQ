@@ -44,21 +44,24 @@ function logiq_init() {
     
     // Now register the error handlers after functions are loaded
     if (get_option('logiq_debug_enabled', true)) {
-        // Make sure these are only registered once
-        remove_action('shutdown', 'logiq_fatal_error_handler'); // Remove if exists
-        remove_action('error_handler', 'logiq_error_handler'); // Remove if exists
+        // Remove existing handlers properly
+        if (has_action('shutdown', 'logiq_fatal_error_handler')) {
+            remove_action('shutdown', 'logiq_fatal_error_handler');
+        }
+        if (has_action('error_handler', 'logiq_error_handler')) {
+            remove_action('error_handler', 'logiq_error_handler');
+        }
         
         register_shutdown_function('logiq_fatal_error_handler');
         set_error_handler('logiq_error_handler', E_DEPRECATED | E_USER_DEPRECATED);
     }
     
-    // Initialize classes
+    // Initialize classes with error handling
     try {
         new LogIQ_Admin();
         new LogIQ_Ajax();
         new LogIQ_Security();
     } catch (Exception $e) {
-        // Log any initialization errors
         error_log('LogIQ Plugin Error: ' . $e->getMessage());
     }
 }
@@ -85,10 +88,37 @@ register_activation_hook(__FILE__, 'logiq_activate');
  * Plugin activation function
  */
 function logiq_activate() {
-    // Create log directory if it doesn't exist
+    // Create log directory with proper error handling
     $log_dir = dirname(__FILE__) . '/logiq-logs';
+    
     if (!file_exists($log_dir)) {
-        mkdir($log_dir, 0755, true);
+        // Check parent directory permissions
+        $parent_dir = dirname($log_dir);
+        if (!is_writable($parent_dir)) {
+            wp_die(
+                sprintf(
+                    __('Cannot create log directory. Parent directory %s is not writable.', 'logiq'),
+                    esc_html($parent_dir)
+                )
+            );
+        }
+        
+        // Try to create directory
+        if (!mkdir($log_dir, 0755, true)) {
+            wp_die(
+                sprintf(
+                    __('Failed to create log directory %s. Please check permissions.', 'logiq'),
+                    esc_html($log_dir)
+                )
+            );
+        }
+        
+        // Create .htaccess to protect logs
+        $htaccess = $log_dir . '/.htaccess';
+        if (!file_exists($htaccess)) {
+            $content = "Order deny,allow\nDeny from all";
+            @file_put_contents($htaccess, $content);
+        }
     }
     
     // Enable debug logging by default

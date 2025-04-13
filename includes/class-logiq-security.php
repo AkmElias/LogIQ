@@ -52,6 +52,8 @@ class LogIQ_Security {
 
     /**
      * Check if current page is a LogIQ admin page
+     *
+     * @return boolean
      */
     private function is_logiq_page() {
         if (!is_admin()) {
@@ -59,7 +61,18 @@ class LogIQ_Security {
         }
         
         $screen = get_current_screen();
-        return strpos($screen->id, 'logiq') !== false;
+        if (!$screen || !is_object($screen)) {
+            return false;
+        }
+
+        // List of LogIQ admin pages
+        $logiq_pages = array(
+            'tools_page_logiq-debug',    // Main debug page
+            'admin_page_logiq-settings', // Settings page
+            'admin_page_logiq-logs'      // Logs page
+        );
+
+        return isset($screen->id) && in_array($screen->id, $logiq_pages, true);
     }
 
     /**
@@ -102,9 +115,33 @@ class LogIQ_Security {
 
     /**
      * Sanitize log level
+     *
+     * @param string|null $level The log level to sanitize
+     * @return string Sanitized log level
      */
     public static function sanitize_log_level($level) {
-        $allowed_levels = ['all', 'fatal', 'error', 'warning', 'info', 'debug', 'deprecated'];
-        return in_array($level, $allowed_levels) ? $level : 'all';
+        // Ensure $level is a string
+        $level = is_string($level) ? $level : '';
+        
+        // Valid log levels
+        $valid_levels = array(
+            'all',
+            'fatal',
+            'error',
+            'warning',
+            'info',
+            'debug',
+            'deprecated'
+        );
+
+        // Check if the level contains any valid level as a substring
+        foreach ($valid_levels as $valid_level) {
+            if (strpos(strtolower($level), $valid_level) !== false) {
+                return $valid_level;
+            }
+        }
+
+        // Default to 'all' if no valid level found
+        return 'all';
     }
 } 
