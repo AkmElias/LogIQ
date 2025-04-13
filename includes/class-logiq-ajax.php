@@ -27,11 +27,12 @@ class LogIQ_Ajax {
      * Get logs via AJAX
      */
     public function get_logs() {
+        // Verify user capabilities and nonce
         LogIQ_Security::verify_admin_ajax();
-
+        
         $log_file = logiq_get_log_file();
-        $page = isset($_POST['page']) ? max(1, intval($_POST['page'])) : 1;
-        $level = isset($_POST['level']) ? sanitize_key($_POST['level']) : 'all';
+        $page = isset($_POST['page']) ? absint($_POST['page']) : 1;
+        $level = isset($_POST['level']) ? LogIQ_Security::sanitize_log_level($_POST['level']) : 'all';
         $per_page = 10;
         
         if (!file_exists($log_file)) {
@@ -189,8 +190,14 @@ class LogIQ_Ajax {
      * Clear logs via AJAX
      */
     public function clear_logs() {
+        // Verify user capabilities and nonce
         LogIQ_Security::verify_admin_ajax();
-
+        
+        // Add confirmation check
+        if (!isset($_POST['confirm']) || $_POST['confirm'] !== 'true') {
+            wp_send_json_error('Confirmation required');
+        }
+        
         $log_file = logiq_get_log_file();
         
         if (file_exists($log_file)) {

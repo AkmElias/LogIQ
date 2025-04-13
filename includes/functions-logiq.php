@@ -11,12 +11,30 @@ if (!defined('ABSPATH')) {
 }
 
 /**
+ * Filter sensitive data
+ */
+function logiq_filter_sensitive_data($data) {
+    if (is_string($data)) {
+        // Filter passwords
+        $data = preg_replace('/password["\']?\s*[:=]\s*["\']([^"\']*)["\']/i', 'password=*****', $data);
+        
+        // Filter API keys
+        $data = preg_replace('/api[_-]?key["\']?\s*[:=]\s*["\']([^"\']*)["\']/i', 'api_key=*****', $data);
+        
+        // Filter auth tokens
+        $data = preg_replace('/auth[_-]?token["\']?\s*[:=]\s*["\']([^"\']*)["\']/i', 'auth_token=*****', $data);
+    }
+    return $data;
+}
+
+/**
  * Prepare data for logging by handling different types
  *
  * @param mixed $data The data to prepare
  * @return string Prepared data
  */
 function logiq_prepare_data($data) {
+    $data = logiq_filter_sensitive_data($data);
     switch (true) {
         case is_null($data):
             return 'NULL';
@@ -107,6 +125,45 @@ function logiq_write_to_log($data) {
 }
 
 /**
+ * Rate limit for logging
+ */
+function logiq_check_rate_limit() {
+    $rate_limit_key = 'logiq_rate_limit_' . get_current_user_id();
+    $rate_limit = get_transient($rate_limit_key);
+    
+    if ($rate_limit === false) {
+        set_transient($rate_limit_key, 1, MINUTE_IN_SECONDS);
+        return true;
+    }
+    
+    if ($rate_limit > 100) { // 100 logs per minute
+        return false;
+    }
+    
+    set_transient($rate_limit_key, $rate_limit + 1, MINUTE_IN_SECONDS);
+    return true;
+}
+
+/**
+ * Check and rotate log file if needed
+ */
+function logiq_check_log_rotation() {
+    $log_file = logiq_get_log_file();
+    $max_size = 10 * 1024 * 1024; // 10MB
+    
+    if (file_exists($log_file) && filesize($log_file) > $max_size) {
+        $backup_file = $log_file . '.' . date('Y-m-d-H-i-s') . '.bak';
+        rename($log_file, $backup_file);
+        
+        // Keep only last 5 backup files
+        $backup_files = glob($log_file . '.*.bak');
+        if (count($backup_files) > 5) {
+            array_map('unlink', array_slice($backup_files, 0, -5));
+        }
+    }
+}
+
+/**
  * Log a message with context
  *
  * @param mixed $data The data to log
@@ -116,6 +173,11 @@ function logiq_write_to_log($data) {
  * @return bool True if logged successfully, false otherwise
  */
 function logiq_log($data, $level = LOGIQ_INFO, $context = '', $additional = array()) {
+    if (!logiq_check_rate_limit()) {
+        error_log('LogIQ: Rate limit exceeded');
+        return false;
+    }
+
     // Check if debug logging is enabled
     if (!get_option('logiq_debug_enabled', true)) {
         return false;
@@ -143,6 +205,7 @@ function logiq_log($data, $level = LOGIQ_INFO, $context = '', $additional = arra
     $log_line = wp_json_encode($log_entry) . PHP_EOL;
 
     // Write to log file
+    logiq_check_log_rotation();
     return logiq_write_to_log($log_line);
 }
 

@@ -63,30 +63,48 @@ class LogIQ_Security {
     }
 
     /**
-     * Sanitize log data for display
-     */
-    public static function sanitize_log_data($data) {
-        if (is_array($data)) {
-            return array_map(array(__CLASS__, 'sanitize_log_data'), $data);
-        }
-        return wp_kses($data, array(
-            'pre' => array(),
-            'code' => array(),
-            'strong' => array(),
-            'br' => array()
-        ));
-    }
-
-    /**
-     * Verify admin ajax requests
+     * Verify admin AJAX requests
      */
     public static function verify_admin_ajax() {
         if (!check_ajax_referer('logiq_admin_nonce', 'nonce', false)) {
-            wp_send_json_error(__('Invalid security token.', 'logiq'));
+            wp_send_json_error('Invalid security token.');
         }
-
+        
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(__('You do not have permission to perform this action.', 'logiq'));
+            wp_send_json_error('Insufficient permissions.');
         }
+    }
+
+    /**
+     * Sanitize log data for output
+     */
+    public static function sanitize_log_data($data) {
+        if (is_array($data)) {
+            return array_map([__CLASS__, 'sanitize_log_data'], $data);
+        }
+        
+        // Check for JSON string
+        if (is_string($data) && self::is_json($data)) {
+            return '<pre>' . esc_html($data) . '</pre>';
+        }
+        
+        // Handle potential HTML in error messages
+        return esc_html($data);
+    }
+
+    /**
+     * Check if string is valid JSON
+     */
+    private static function is_json($string) {
+        json_decode($string);
+        return (json_last_error() === JSON_ERROR_NONE);
+    }
+
+    /**
+     * Sanitize log level
+     */
+    public static function sanitize_log_level($level) {
+        $allowed_levels = ['all', 'fatal', 'error', 'warning', 'info', 'debug', 'deprecated'];
+        return in_array($level, $allowed_levels) ? $level : 'all';
     }
 } 
