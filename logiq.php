@@ -111,4 +111,94 @@ function logiq_uninstall() {
         array_map('unlink', glob("$log_dir/*.*"));
         rmdir($log_dir);
     }
-} 
+}
+
+// Add this after the logiq_init() function
+add_action('admin_init', function() {
+    if (isset($_GET['logiq_test']) && current_user_can('manage_options')) {
+        $result = logiq_test_all_levels();
+        add_action('admin_notices', function() use ($result) {
+            echo '<div class="notice notice-success"><p>' . esc_html($result) . '</p></div>';
+        });
+    }
+});
+
+// Add this after your existing code
+function logiq_run_comprehensive_tests() {
+    // 1. Info Logs
+    logiq_log("Regular information message", LOGIQ_INFO, 'info_test');
+    logiq_log(["user" => "admin", "action" => "login"], LOGIQ_INFO, 'info_array');
+
+    // 2. Debug Logs
+    logiq_log("Debug message with variable data", LOGIQ_DEBUG, 'debug_test');
+    logiq_log(
+        [
+            'request' => $_SERVER['REQUEST_URI'],
+            'method' => $_SERVER['REQUEST_METHOD']
+        ],
+        LOGIQ_DEBUG,
+        'debug_server'
+    );
+
+    // 3. Warning Logs
+    logiq_log("Warning: Resource usage high", LOGIQ_WARNING, 'warning_test');
+    logiq_log(
+        [
+            'memory_usage' => memory_get_usage(),
+            'peak_memory' => memory_get_peak_usage()
+        ],
+        LOGIQ_WARNING,
+        'warning_memory'
+    );
+
+    // 4. Error Logs
+    logiq_log("Database connection failed", LOGIQ_ERROR, 'error_test');
+    logiq_log_error("Custom error with stack trace");
+
+    // 5. Fatal Error (Simulated)
+    logiq_log("Simulated fatal error", LOGIQ_FATAL, 'fatal_test');
+
+    // 6. Deprecated Notice
+    trigger_error("Using deprecated function", E_USER_DEPRECATED);
+
+    // 7. Exception Logging
+    try {
+        throw new Exception("Test exception message");
+    } catch (Exception $e) {
+        logiq_log_exception($e, 'exception_test');
+    }
+
+    // 8. Different Data Types
+    logiq_log(null, LOGIQ_INFO, 'null_test');
+    logiq_log(true, LOGIQ_INFO, 'boolean_test');
+    logiq_log(['a' => 1, 'b' => 2], LOGIQ_INFO, 'array_test');
+    logiq_log((object)['name' => 'Test Object'], LOGIQ_INFO, 'object_test');
+    logiq_log(3.14159, LOGIQ_INFO, 'number_test');
+
+    // 9. Complex Data Structure
+    logiq_log([
+        'user' => [
+            'id' => 1,
+            'name' => 'Admin',
+            'roles' => ['administrator'],
+            'meta' => (object)['last_login' => time()]
+        ],
+        'system' => [
+            'php_version' => PHP_VERSION,
+            'memory_limit' => ini_get('memory_limit'),
+            'max_execution_time' => ini_get('max_execution_time')
+        ]
+    ], LOGIQ_DEBUG, 'complex_data');
+
+    return "Comprehensive test logs generated successfully!";
+}
+
+// Add this to run the tests via URL parameter
+add_action('admin_init', function() {
+    if (isset($_GET['logiq_comprehensive_test']) && current_user_can('manage_options')) {
+        $result = logiq_run_comprehensive_tests();
+        add_action('admin_notices', function() use ($result) {
+            echo '<div class="notice notice-success"><p>' . esc_html($result) . '</p></div>';
+        });
+    }
+}); 
