@@ -12,13 +12,28 @@
     </div>
 
     <div class="nav-tab-wrapper">
-        <a href="#" class="nav-tab nav-tab-active" data-level="all"><?php esc_html_e('All Logs', 'logiq'); ?> <span class="count">(0)</span></a>
-        <a href="#" class="nav-tab" data-level="fatal"><?php esc_html_e('Fatal', 'logiq'); ?> <span class="count">(0)</span></a>
-        <a href="#" class="nav-tab" data-level="error"><?php esc_html_e('Errors', 'logiq'); ?> <span class="count">(0)</span></a>
-        <a href="#" class="nav-tab" data-level="warning"><?php esc_html_e('Warnings', 'logiq'); ?> <span class="count">(0)</span></a>
-        <a href="#" class="nav-tab" data-level="deprecated"><?php esc_html_e('Deprecated', 'logiq'); ?> <span class="count">(0)</span></a>
-        <a href="#" class="nav-tab" data-level="info"><?php esc_html_e('Info', 'logiq'); ?> <span class="count">(0)</span></a>
-        <a href="#" class="nav-tab" data-level="debug"><?php esc_html_e('Debug', 'logiq'); ?> <span class="count">(0)</span></a>
+        <?php
+        $log_levels = array(
+            'all' => __('All Logs', 'logiq'),
+            'fatal' => __('Fatal', 'logiq'),
+            'error' => __('Errors', 'logiq'),
+            'warning' => __('Warnings', 'logiq'),
+            'info' => __('Info', 'logiq'),
+            'debug' => __('Debug', 'logiq'),
+            'deprecated' => __('Deprecated', 'logiq')
+        );
+
+        foreach ($log_levels as $level => $label) {
+            $active = ($current_level === $level) ? 'nav-tab-active' : '';
+            $count = isset($counts[$level]) ? $counts[$level] : 0;
+            ?>
+            <a href="#" class="nav-tab <?php echo $active; ?>" data-level="<?php echo esc_attr($level); ?>">
+                <?php echo esc_html($label); ?>
+                <span class="count"><?php echo esc_html($count); ?></span>
+            </a>
+            <?php
+        }
+        ?>
     </div>
 
     <div id="logiq-log-viewer">

@@ -375,4 +375,100 @@
 .log-entry[data-level="debug"] .log-level {
     background-color: #777;
     color: #fff;
-} 
+}
+
+/* Update the tab styles to maintain colors */
+.nav-tab[data-level="fatal"] {
+    border-left-color: #dc3545;
+}
+
+.nav-tab[data-level="error"] {
+    border-left-color: #ff4444;
+}
+
+.nav-tab[data-level="warning"] {
+    border-left-color: #ffa700;
+}
+
+.nav-tab[data-level="info"] {
+    border-left-color: #0099cc;
+}
+
+.nav-tab[data-level="debug"] {
+    border-left-color: #777;
+}
+
+.nav-tab[data-level="deprecated"] {
+    border-left-color: #6c757d;
+}
+
+/* Add persistent colors for tab counts */
+.nav-tab[data-level="fatal"] .count {
+    background-color: #dc3545 !important;
+    color: #fff !important;
+}
+
+.nav-tab[data-level="error"] .count {
+    background-color: #ff4444 !important;
+    color: #fff !important;
+}
+
+.nav-tab[data-level="warning"] .count {
+    background-color: #ffa700 !important;
+    color: #fff !important;
+}
+
+.nav-tab[data-level="info"] .count {
+    background-color: #0099cc !important;
+    color: #fff !important;
+}
+
+.nav-tab[data-level="debug"] .count {
+    background-color: #777 !important;
+    color: #fff !important;
+}
+
+.nav-tab[data-level="deprecated"] .count {
+    background-color: #6c757d !important;
+    color: #fff !important;
+}
+
+/* Add hover effects while maintaining colors */
+.nav-tab:hover .count {
+    opacity: 0.9;
+}
+
+/* Active tab styles */
+.nav-tab.nav-tab-active {
+    border-bottom-color: #fff;
+    background: #fff;
+}
+
+.nav-tab.nav-tab-active .count {
+    opacity: 1;
+}
+
+/* Add transition for smooth color changes */
+.nav-tab .count {
+    transition: all 0.3s ease;
+}
+
+/* Ensure tab colors remain visible even when inactive */
+.nav-tab {
+    border-left-width: 3px;
+    border-left-style: solid;
+    transition: all 0.3s ease;
+}
+
+/* Add a subtle indicator for the active tab */
+.nav-tab.nav-tab-active {
+    box-shadow: inset 0 3px 0 var(--tab-color, #2271b1);
+}
+
+/* Set tab colors as CSS variables */
+.nav-tab[data-level="fatal"] { --tab-color: #dc3545; }
+.nav-tab[data-level="error"] { --tab-color: #ff4444; }
+.nav-tab[data-level="warning"] { --tab-color: #ffa700; }
+.nav-tab[data-level="info"] { --tab-color: #0099cc; }
+.nav-tab[data-level="debug"] { --tab-color: #777; }
+.nav-tab[data-level="deprecated"] { --tab-color: #6c757d; } 

@@ -60,11 +60,19 @@ jQuery(document).ready(function($) {
                         $('#logiq-pagination').empty();
                     }
                     
-                    // Update tab counts
+                    // Update tab counts and colors
                     $('.nav-tab').each(function() {
                         var level = $(this).data('level');
-                        var count = response.data.counts[level];
-                        $(this).html($(this).text().split('(')[0] + ' (' + count + ')');
+                        var count = response.data.counts[level] || 0;
+                        $(this).find('.count').text(count);
+                        
+                        // Re-apply the active state if this is the current tab
+                        if (level === currentLevel) {
+                            $(this).addClass('nav-tab-active');
+                        }
+                        
+                        // Always maintain the level-specific colors
+                        $(this).addClass('nav-tab-' + level);
                     });
                 } else {
                     $('#logiq-log-viewer').html('<p class="error">' + response.data + '</p>');
