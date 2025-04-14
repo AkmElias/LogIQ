@@ -13,11 +13,21 @@
 
     <div class="nav-tab-wrapper">
         <?php
+        // Define current level with a default value
+        $current_level = isset($_GET['level']) ? sanitize_key($_GET['level']) : 'all';
+        
+        // Initialize counts array with defaults
+        $counts = isset($counts) ? $counts : array_fill_keys(
+            ['all', 'fatal', 'error', 'warning', 'notice', 'info', 'debug', 'deprecated'],
+            0
+        );
+
         $log_levels = array(
             'all' => __('All Logs', 'logiq'),
             'fatal' => __('Fatal', 'logiq'),
             'error' => __('Errors', 'logiq'),
             'warning' => __('Warnings', 'logiq'),
+            'notice' => __('Notices', 'logiq'),
             'info' => __('Info', 'logiq'),
             'debug' => __('Debug', 'logiq'),
             'deprecated' => __('Deprecated', 'logiq')
@@ -25,9 +35,11 @@
 
         foreach ($log_levels as $level => $label) {
             $active = ($current_level === $level) ? 'nav-tab-active' : '';
-            $count = isset($counts[$level]) ? $counts[$level] : 0;
+            $count = isset($counts[$level]) ? absint($counts[$level]) : 0;
             ?>
-            <a href="#" class="nav-tab <?php echo $active; ?>" data-level="<?php echo esc_attr($level); ?>">
+            <a href="#" 
+               class="nav-tab <?php echo esc_attr($active); ?>" 
+               data-level="<?php echo esc_attr($level); ?>">
                 <?php echo esc_html($label); ?>
                 <span class="count"><?php echo esc_html($count); ?></span>
             </a>

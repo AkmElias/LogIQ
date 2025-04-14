@@ -67,43 +67,42 @@ function logiq_prepare_data($data) {
 }
 
 /**
- * Get the WordPress debug log file path
+ * Get the path to the log file
  *
- * @return string
+ * @return string|false Returns the log file path or false if not found
  */
 function logiq_get_log_file() {
-    // Check for custom debug log path
-    if (defined('WP_DEBUG_LOG') && WP_DEBUG_LOG) {
-        if (is_string(WP_DEBUG_LOG)) {
-            return WP_DEBUG_LOG;
+    $upload_dir = wp_upload_dir();
+    $log_dir = $upload_dir['basedir'];
+    
+    // Look for debug-*.log files
+    $log_files = glob($log_dir . '/debug-*.log');
+    
+    if (empty($log_files)) {
+        // If no debug-*.log files found, check in wp-content directory
+        $wp_content_dir = WP_CONTENT_DIR;
+        $log_files = glob($wp_content_dir . '/debug-*.log');
+        
+        if (empty($log_files)) {
+            // Create a new log file if none exists
+            $new_log_file = $log_dir . '/debug-' . time() . '.log';
+            if (@touch($new_log_file)) {
+                return $new_log_file;
+            }
+            error_log('LogIQ: Failed to create new log file');
+            return false;
         }
-        return WP_CONTENT_DIR . '/debug.log';
     }
-    // asd
-
-    // Check for default WordPress debug log
-    $default_log = WP_CONTENT_DIR . '/debug.log';
-    if (file_exists($default_log)) {
-        return $default_log;
-    }
-
-    // Check for dynamic debug log files
-    $content_dir = WP_CONTENT_DIR;
-    $files = glob($content_dir . '/debug-*.log');
-    if (!empty($files)) {
-        // Sort by modification time, newest first
-        usort($files, function($a, $b) {
-            return filemtime($b) - filemtime($a);
-        });
-        return $files[0];
-    }
-
-    // Fallback to our custom log file
-    $custom_log = WP_CONTENT_DIR . '/logiq-logs/debug.log';
-    if (!file_exists(dirname($custom_log))) {
-        wp_mkdir_p(dirname($custom_log));
-    }
-    return $custom_log;
+    
+    // Sort files by modification time, newest first
+    usort($log_files, function($a, $b) {
+        return filemtime($b) - filemtime($a);
+    });
+    
+    // Get the most recent log file
+    $latest_log = $log_files[0];
+    
+    return $latest_log;
 }
 
 /**
@@ -115,14 +114,30 @@ function logiq_get_log_file() {
 function logiq_write_to_log($data) {
     $log_file = logiq_get_log_file();
     
+    if ($log_file === false) {
+        error_log('LogIQ Error: No valid log file available');
+        return false;
+    }
+    
+    
     // Create directory if it doesn't exist
     $log_dir = dirname($log_file);
     if (!file_exists($log_dir)) {
-        wp_mkdir_p($log_dir);
+        if (!wp_mkdir_p($log_dir)) {
+            error_log('LogIQ Error: Failed to create log directory: ' . $log_dir);
+            return false;
+        }
     }
     
-    // Write to file
-    return (bool) file_put_contents($log_file, $data, FILE_APPEND | LOCK_EX);
+    // Write to file with exclusive lock
+    $result = @file_put_contents($log_file, $data, FILE_APPEND | LOCK_EX);
+    
+    if ($result === false) {
+        error_log('LogIQ Debug - Failed to write to log file: ' . error_get_last()['message']);
+        return false;
+    }
+    
+    return true;
 }
 
 /**

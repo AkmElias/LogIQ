@@ -96,7 +96,8 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'logiq_clear_logs',
-                nonce: logiqAdmin.nonce
+                nonce: logiqAdmin.nonce,
+                confirm: 'true'
             },
             success: function(response) {
                 if (response.success) {

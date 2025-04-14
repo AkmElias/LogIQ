@@ -66,33 +66,31 @@ class LogIQ_Ajax {
             }
         }
 
-        // Count logs by level (using deduplicated entries)
-        $counts = array('all' => count($parsed_entries));
-        foreach (['fatal', 'error', 'warning', 'deprecated', 'info', 'debug'] as $log_level) {
-            $counts[$log_level] = count(array_filter($parsed_entries, function($entry) use ($log_level) {
-                return $entry['level'] === $log_level;
-            }));
-        }
-        
         // Filter by level if specified
+        // List of log levels (for counts and filtering)
+        $all_levels = ['all', 'fatal', 'error', 'warning', 'deprecated', 'notice', 'info', 'debug'];
+
+        // Categorize and count entries
+        $counts = array_fill_keys($all_levels, 0);
+
+        foreach ($parsed_entries as $entry) {
+            foreach ($all_levels as $log_level) {
+                if ($this->entry_matches_level($entry, $log_level)) {
+                    $counts[$log_level]++;
+                }
+            }
+        }
+
+        // Filter by requested level
         if ($level !== 'all') {
             $parsed_entries = array_filter($parsed_entries, function($entry) use ($level) {
-                // Strict level matching
-                if ($entry['level'] === $level) {
-                    return true;
-                }
-                
-                // Special handling for deprecated notices
-                if ($level === 'deprecated' && 
-                    (strpos($entry['context'], 'deprecated') !== false || 
-                     strpos($entry['data'], 'deprecated') !== false ||
-                     strpos($entry['data'], '_load_textdomain_just_in_time') !== false)) {
-                    return true;
-                }
-                
-                return false;
+                return $this->entry_matches_level($entry, $level);
             });
         }
+
+
+        // var_dump($counts);
+        // die();
         
         // Calculate pagination
         $total_entries = count($parsed_entries);
@@ -127,6 +125,66 @@ class LogIQ_Ajax {
             'counts' => $counts
         ));
     }
+
+    /**
+     * Check if a log entry matches a given log level/category
+     *
+     * @param array $entry Log entry data
+     * @param string $level Target level/category
+     * @return bool True if matches
+     */
+    private function entry_matches_level($entry, $level) {
+        switch ($level) {
+            case 'all':
+                return true;
+
+            case 'notice':
+                // Check for PHP Notices including textdomain notices
+                return (
+                    strtolower($entry['level']) === 'notice' ||
+                    (strpos($entry['data'], 'PHP Notice:') !== false) ||
+                    (strpos($entry['context'], 'wp_notice') !== false)
+                ) && 
+                // Exclude deprecated notices
+                strpos($entry['data'], 'deprecated') === false;
+
+            case 'deprecated':
+                return (
+                    strtolower($entry['level']) === 'deprecated' ||
+                    strpos($entry['context'], 'deprecated') !== false ||
+                    strpos($entry['data'], 'deprecated') !== false ||
+                    strpos($entry['data'], 'Deprecated:') !== false
+                );
+
+            case 'warning':
+                return (
+                    strtolower($entry['level']) === 'warning' ||
+                    strpos($entry['data'], 'PHP Warning:') !== false
+                );
+
+            case 'error':
+                return (
+                    strtolower($entry['level']) === 'error' ||
+                    strpos($entry['data'], 'PHP Error:') !== false
+                );
+
+            case 'fatal':
+                return (
+                    strtolower($entry['level']) === 'fatal' ||
+                    strpos($entry['data'], 'PHP Fatal') !== false
+                );
+
+            case 'info':
+                return strtolower($entry['level']) === 'info';
+
+            case 'debug':
+                return strtolower($entry['level']) === 'debug';
+
+            default:
+                return false;
+        }
+    }
+
 
     /**
      * Generate pagination HTML
@@ -199,19 +257,50 @@ class LogIQ_Ajax {
         // Verify user capabilities and nonce
         LogIQ_Security::verify_admin_ajax();
         
-        // Add confirmation check
         if (!isset($_POST['confirm']) || $_POST['confirm'] !== 'true') {
-            wp_send_json_error('Confirmation required');
+            wp_send_json_error(__('Confirmation required', 'logiq'));
+            return;
         }
         
         $log_file = logiq_get_log_file();
         
-        if (file_exists($log_file)) {
-            if (file_put_contents($log_file, '') === false) {
-                wp_send_json_error(__('Failed to clear logs.', 'logiq'));
-            }
+        if ($log_file === false) {
+            wp_send_json_error(__('Could not determine log file location.', 'logiq'));
+            return;
         }
-
+        
+        error_log('LogIQ Debug - Attempting to clear log file: ' . $log_file);
+        
+        if (!file_exists($log_file)) {
+            wp_send_json_error(sprintf(
+                __('Log file not found: %s', 'logiq'),
+                basename($log_file)
+            ));
+            return;
+        }
+        
+        if (!is_writable($log_file)) {
+            wp_send_json_error(sprintf(
+                __('Log file is not writable: %s', 'logiq'),
+                basename($log_file)
+            ));
+            return;
+        }
+        
+        // Clear the file
+        $result = @file_put_contents($log_file, '');
+        
+        if ($result === false) {
+            wp_send_json_error(sprintf(
+                __('Failed to clear log file: %s', 'logiq'),
+                error_get_last()['message'] ?? 'Unknown error'
+            ));
+            return;
+        }
+        
+        // Clear cache
+        clearstatcache(true, $log_file);
+        
         wp_send_json_success(__('Logs cleared successfully.', 'logiq'));
     }
 
@@ -255,8 +344,10 @@ class LogIQ_Ajax {
         if (is_array($log_data['data'])) {
             $output .= '<pre>' . esc_html(print_r($log_data['data'], true)) . '</pre>';
         } else {
-            // Format long lines better
-            $message = esc_html($log_data['data']);
+            // Format long lines better and handle HTML in notices
+            $message = $log_data['context'] === 'wp_notice' ? 
+                wp_kses($log_data['data'], array('code' => array(), 'strong' => array(), 'a' => array('href' => array()))) :
+                esc_html($log_data['data']);
             $output .= '<pre>' . $message . '</pre>';
         }
         $output .= '</div>';
@@ -287,17 +378,58 @@ class LogIQ_Ajax {
             return array_merge($parsed, array_intersect_key($json_data, $parsed));
         }
 
-        // Parse PHP error log format with better error handling
+        // Parse standard PHP error log format with timestamp
         if (preg_match('/^\[(.*?)\] (.+)$/', $entry, $matches)) {
             $parsed['timestamp'] = $matches[1];
             $message = $matches[2];
 
-            // More specific pattern matching for error types
+            // Check for WordPress textdomain notice
+            if (strpos($message, '_load_textdomain_just_in_time') !== false) {
+                $parsed['level'] = 'notice';
+                $parsed['context'] = 'wp_notice';
+                $parsed['data'] = $message;
+                if (preg_match('/in (.+?) on line (\d+)$/', $message, $file_matches)) {
+                    $parsed['file'] = str_replace(ABSPATH, '', $file_matches[1]);
+                    $parsed['line'] = intval($file_matches[2]);
+                }
+                return $parsed;
+            }
+
+            // Check for PHP Deprecated message
+            if (strpos($message, 'PHP Deprecated:') !== false || strpos($message, 'deprecated') !== false) {
+                $parsed['level'] = 'deprecated';
+                $parsed['context'] = 'deprecated_notice';
+                if (preg_match('/PHP Deprecated:\s*(.+?) in (.+?) on line (\d+)/', $message, $dep_matches)) {
+                    $parsed['data'] = $dep_matches[1];
+                    $parsed['file'] = str_replace(ABSPATH, '', $dep_matches[2]);
+                    $parsed['line'] = intval($dep_matches[3]);
+                } else {
+                    $parsed['data'] = $message;
+                }
+                return $parsed;
+            }
+
+            // Parse different error types
             if (preg_match('/PHP (?:(Parse|Fatal|Warning|Notice|Deprecated)) (?:error|warning|notice):\s*(.+?)(?:\s+in\s+(.+?)\s+on\s+line\s+(\d+))?$/i', $message, $error_matches)) {
                 $error_type = strtolower($error_matches[1]);
-                $parsed['level'] = $error_type === 'parse' || $error_type === 'fatal' ? 'fatal' :
-                                  ($error_type === 'warning' ? 'warning' :
-                                  ($error_type === 'deprecated' ? 'deprecated' : 'info'));
+                // Replace match expression with switch statement for better compatibility
+                switch ($error_type) {
+                    case 'parse':
+                    case 'fatal':
+                        $parsed['level'] = 'fatal';
+                        break;
+                    case 'warning':
+                        $parsed['level'] = 'warning';
+                        break;
+                    case 'deprecated':
+                        $parsed['level'] = 'deprecated';
+                        break;
+                    case 'notice':
+                        $parsed['level'] = 'notice';
+                        break;
+                    default:
+                        $parsed['level'] = 'info';
+                }
                 $parsed['context'] = 'php_' . $error_type;
                 $parsed['data'] = $error_matches[2];
                 
