@@ -31,11 +31,14 @@ class LogIQ_Ajax {
         LogIQ_Security::verify_admin_ajax();
         
         $log_file = logiq_get_log_file();
+        error_log('LogIQ Debug - Attempting to read log file: ' . $log_file);
+        
         $page = isset($_POST['page']) ? absint($_POST['page']) : 1;
         $level = isset($_POST['level']) ? LogIQ_Security::sanitize_log_level($_POST['level']) : 'all';
-        $per_page = 10;
+        $per_page = 10; // Increased to show more logs per page
         
         if (!file_exists($log_file)) {
+            error_log('LogIQ Debug - Log file not found: ' . $log_file);
             wp_send_json_success(array(
                 'html' => '<p class="description">' . __('No logs found.', 'logiq') . '</p>',
                 'pagination' => '',
@@ -45,53 +48,60 @@ class LogIQ_Ajax {
         }
 
         // Read logs
+        error_log('LogIQ Debug - Reading file contents from: ' . $log_file);
         $logs = file_get_contents($log_file);
         $log_entries = array_filter(explode(PHP_EOL, $logs));
-        $log_entries = array_reverse($log_entries);
-
-        // Parse all entries and deduplicate
-        $parsed_entries = [];
-        $seen_entries = [];
-
-        foreach ($log_entries as $entry) {
-            $parsed = $this->parse_log_entry($entry);
-            
-            // Create a unique key for each log entry based on timestamp, message, and file
-            $unique_key = md5($parsed['timestamp'] . $parsed['data'] . $parsed['file'] . $parsed['line']);
-            
-            // Only keep the entry if we haven't seen it before
-            if (!isset($seen_entries[$unique_key])) {
-                $parsed_entries[] = $parsed;
-                $seen_entries[$unique_key] = true;
-            }
+        $total_raw_entries = count($log_entries);
+        error_log('LogIQ Debug - Total raw log entries found: ' . $total_raw_entries);
+        
+        // Log first few entries for debugging
+        for ($i = 0; $i < min(5, count($log_entries)); $i++) {
+            error_log('LogIQ Debug - Sample entry ' . $i . ': ' . $log_entries[$i]);
         }
+        
+        $log_entries = array_reverse($log_entries);
+        $parsed_entries = [];
+        $debug_counts = array_fill_keys(['all', 'fatal', 'error', 'warning', 'notice', 'deprecated', 'info', 'debug'], 0);
 
-        // Filter by level if specified
-        // List of log levels (for counts and filtering)
-        $all_levels = ['all', 'fatal', 'error', 'warning', 'deprecated', 'notice', 'info', 'debug'];
+        // Parse all entries
+        foreach ($log_entries as $index => $entry) {
+            $parsed = $this->parse_log_entry($entry);
+            if ($parsed === null) {
+                error_log('LogIQ Debug - Failed to parse entry ' . $index . ': ' . substr($entry, 0, 100));
+                continue;
+            }
 
-        // Categorize and count entries
-        $counts = array_fill_keys($all_levels, 0);
-
-        foreach ($parsed_entries as $entry) {
-            foreach ($all_levels as $log_level) {
-                if ($this->entry_matches_level($entry, $log_level)) {
-                    $counts[$log_level]++;
+            $parsed_entries[] = $parsed;
+            $debug_counts['all']++;
+            
+            // Count by level
+            foreach (['fatal', 'error', 'warning', 'notice', 'deprecated', 'info', 'debug'] as $log_level) {
+                if ($this->entry_matches_level($parsed, $log_level)) {
+                    $debug_counts[$log_level]++;
+                    break; // Each entry should only count for one level
                 }
             }
+
+            // Log every 100th entry for debugging
+            if ($index % 100 === 0) {
+                error_log('LogIQ Debug - Processing entry ' . $index . ' Level: ' . $parsed['level']);
+            }
         }
 
-        // Filter by requested level
+        error_log('LogIQ Debug - Total parsed entries: ' . count($parsed_entries));
+        error_log('LogIQ Debug - Counts by level: ' . print_r($debug_counts, true));
+
+        // Filter by requested level if not 'all'
         if ($level !== 'all') {
-            $parsed_entries = array_filter($parsed_entries, function($entry) use ($level) {
-                return $this->entry_matches_level($entry, $level);
+            $filtered_entries = array_filter($parsed_entries, function($entry) use ($level) {
+                $matches = $this->entry_matches_level($entry, $level);
+                error_log('LogIQ Debug - Checking entry level match: ' . $entry['level'] . ' against ' . $level . ' = ' . ($matches ? 'true' : 'false'));
+                return $matches;
             });
+            $parsed_entries = array_values($filtered_entries);
+            error_log('LogIQ Debug - Filtered entries for level ' . $level . ': ' . count($parsed_entries));
         }
 
-
-        // var_dump($counts);
-        // die();
-        
         // Calculate pagination
         $total_entries = count($parsed_entries);
         $total_pages = ceil($total_entries / $per_page);
@@ -99,6 +109,7 @@ class LogIQ_Ajax {
         
         // Slice the array for current page
         $current_page_entries = array_slice($parsed_entries, $offset, $per_page);
+        error_log('LogIQ Debug - Current page entries: ' . count($current_page_entries));
 
         $output = '';
         $pagination = '';
@@ -121,8 +132,20 @@ class LogIQ_Ajax {
 
         wp_send_json_success(array(
             'html' => $output,
-            'pagination' => $pagination, // Will be empty string if no pagination needed
-            'counts' => $counts
+            'pagination' => $pagination,
+            'counts' => $debug_counts,
+            'debug_info' => array(
+                'total_raw_entries' => $total_raw_entries,
+                'total_parsed_entries' => count($parsed_entries),
+                'filtered_entries' => $total_entries,
+                'current_page' => $page,
+                'entries_per_page' => $per_page,
+                'total_pages' => $total_pages,
+                'log_file' => basename($log_file),
+                'log_file_full_path' => $log_file,
+                'log_file_size' => filesize($log_file),
+                'log_file_modified' => date('Y-m-d H:i:s', filemtime($log_file))
+            )
         ));
     }
 
@@ -134,51 +157,45 @@ class LogIQ_Ajax {
      * @return bool True if matches
      */
     private function entry_matches_level($entry, $level) {
+        $data = strtolower($entry['data']);
+        $entry_level = strtolower($entry['level']);
+        
         switch ($level) {
             case 'all':
                 return true;
 
             case 'notice':
-                // Check for PHP Notices including textdomain notices
                 return (
-                    strtolower($entry['level']) === 'notice' ||
-                    (strpos($entry['data'], 'PHP Notice:') !== false) ||
-                    (strpos($entry['context'], 'wp_notice') !== false)
-                ) && 
-                // Exclude deprecated notices
-                strpos($entry['data'], 'deprecated') === false;
+                    $entry_level === 'notice' ||
+                    strpos($data, 'php notice:') !== false ||
+                    strpos($data, '_load_textdomain_just_in_time') !== false
+                ) && !strpos($data, 'deprecated');
 
             case 'deprecated':
                 return (
-                    strtolower($entry['level']) === 'deprecated' ||
-                    strpos($entry['context'], 'deprecated') !== false ||
-                    strpos($entry['data'], 'deprecated') !== false ||
-                    strpos($entry['data'], 'Deprecated:') !== false
+                    $entry_level === 'deprecated' ||
+                    strpos($data, 'deprecated') !== false ||
+                    strpos($data, 'creation of dynamic property') !== false
                 );
 
             case 'warning':
                 return (
-                    strtolower($entry['level']) === 'warning' ||
-                    strpos($entry['data'], 'PHP Warning:') !== false
-                );
+                    $entry_level === 'warning' ||
+                    strpos($data, 'php warning:') !== false ||
+                    strpos($data, 'warning:') !== false
+                ) && !strpos($data, 'deprecated');
 
             case 'error':
-                return (
-                    strtolower($entry['level']) === 'error' ||
-                    strpos($entry['data'], 'PHP Error:') !== false
-                );
+                return $entry_level === 'error' || strpos($data, 'php error:') !== false;
 
             case 'fatal':
-                return (
-                    strtolower($entry['level']) === 'fatal' ||
-                    strpos($entry['data'], 'PHP Fatal') !== false
-                );
+                return $entry_level === 'fatal' || strpos($data, 'php fatal') !== false;
 
             case 'info':
-                return strtolower($entry['level']) === 'info';
+                return $entry_level === 'info';
 
             case 'debug':
-                return strtolower($entry['level']) === 'debug';
+                return $entry_level === 'debug';
 
             default:
                 return false;
@@ -361,84 +378,55 @@ class LogIQ_Ajax {
             return null;
         }
 
-        // Default values for required fields
+        // Default values
         $parsed = array(
             'timestamp' => current_time('mysql'),
             'level' => 'info',
             'context' => 'unknown',
             'file' => '',
             'line' => 0,
-            'data' => '',
-            'user' => get_current_user_id()
+            'data' => $entry // Store full entry as default data
         );
-
-        // First try to parse as JSON
-        $json_data = json_decode($entry, true);
-        if ($json_data && is_array($json_data)) {
-            return array_merge($parsed, array_intersect_key($json_data, $parsed));
-        }
 
         // Parse standard PHP error log format with timestamp
         if (preg_match('/^\[(.*?)\] (.+)$/', $entry, $matches)) {
             $parsed['timestamp'] = $matches[1];
             $message = $matches[2];
 
-            // Check for WordPress textdomain notice
-            if (strpos($message, '_load_textdomain_just_in_time') !== false) {
+            // Determine the log level and context
+            if (strpos($message, 'PHP Notice:') !== false || strpos($message, '_load_textdomain_just_in_time') !== false) {
                 $parsed['level'] = 'notice';
                 $parsed['context'] = 'wp_notice';
-                $parsed['data'] = $message;
-                if (preg_match('/in (.+?) on line (\d+)$/', $message, $file_matches)) {
-                    $parsed['file'] = str_replace(ABSPATH, '', $file_matches[1]);
-                    $parsed['line'] = intval($file_matches[2]);
-                }
-                return $parsed;
+            } 
+            else if (strpos($message, 'PHP Warning:') !== false || strpos($message, 'Warning:') !== false) {
+                $parsed['level'] = 'warning';
+                $parsed['context'] = 'php_warning';
             }
-
-            // Check for PHP Deprecated message
-            if (strpos($message, 'PHP Deprecated:') !== false || strpos($message, 'deprecated') !== false) {
+            else if (strpos($message, 'PHP Deprecated:') !== false || strpos($message, 'deprecated') !== false || strpos($message, 'Deprecated:') !== false) {
                 $parsed['level'] = 'deprecated';
-                $parsed['context'] = 'deprecated_notice';
-                if (preg_match('/PHP Deprecated:\s*(.+?) in (.+?) on line (\d+)/', $message, $dep_matches)) {
-                    $parsed['data'] = $dep_matches[1];
-                    $parsed['file'] = str_replace(ABSPATH, '', $dep_matches[2]);
-                    $parsed['line'] = intval($dep_matches[3]);
-                } else {
-                    $parsed['data'] = $message;
-                }
-                return $parsed;
+                $parsed['context'] = 'php_deprecated';
+            }
+            else if (strpos($message, 'PHP Fatal error:') !== false) {
+                $parsed['level'] = 'fatal';
+                $parsed['context'] = 'php_fatal';
+            }
+            else if (strpos($message, 'PHP Error:') !== false) {
+                $parsed['level'] = 'error';
+                $parsed['context'] = 'php_error';
             }
 
-            // Parse different error types
-            if (preg_match('/PHP (?:(Parse|Fatal|Warning|Notice|Deprecated)) (?:error|warning|notice):\s*(.+?)(?:\s+in\s+(.+?)\s+on\s+line\s+(\d+))?$/i', $message, $error_matches)) {
-                $error_type = strtolower($error_matches[1]);
-                // Replace match expression with switch statement for better compatibility
-                switch ($error_type) {
-                    case 'parse':
-                    case 'fatal':
-                        $parsed['level'] = 'fatal';
-                        break;
-                    case 'warning':
-                        $parsed['level'] = 'warning';
-                        break;
-                    case 'deprecated':
-                        $parsed['level'] = 'deprecated';
-                        break;
-                    case 'notice':
-                        $parsed['level'] = 'notice';
-                        break;
-                    default:
-                        $parsed['level'] = 'info';
-                }
-                $parsed['context'] = 'php_' . $error_type;
-                $parsed['data'] = $error_matches[2];
-                
-                if (!empty($error_matches[3])) {
-                    $parsed['file'] = str_replace(ABSPATH, '', $error_matches[3]);
-                    $parsed['line'] = intval($error_matches[4]);
-                }
-            } else {
-                $parsed['data'] = $message;
+            // Special handling for dynamic property messages
+            if (strpos($message, 'Creation of dynamic property') !== false) {
+                $parsed['level'] = 'deprecated';
+                $parsed['context'] = 'php_deprecated';
+            }
+
+            $parsed['data'] = $message;
+
+            // Extract file and line information
+            if (preg_match('/in (.+?) on line (\d+)/', $message, $file_matches)) {
+                $parsed['file'] = str_replace(ABSPATH, '', $file_matches[1]);
+                $parsed['line'] = intval($file_matches[2]);
             }
         }
 

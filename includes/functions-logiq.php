@@ -71,38 +71,36 @@ function logiq_prepare_data($data) {
  *
  * @return string|false Returns the log file path or false if not found
  */
-function logiq_get_log_file() {
-    $upload_dir = wp_upload_dir();
-    $log_dir = $upload_dir['basedir'];
-    
-    // Look for debug-*.log files
-    $log_files = glob($log_dir . '/debug-*.log');
-    
-    if (empty($log_files)) {
-        // If no debug-*.log files found, check in wp-content directory
-        $wp_content_dir = WP_CONTENT_DIR;
-        $log_files = glob($wp_content_dir . '/debug-*.log');
-        
-        if (empty($log_files)) {
-            // Create a new log file if none exists
-            $new_log_file = $log_dir . '/debug-' . time() . '.log';
-            if (@touch($new_log_file)) {
-                return $new_log_file;
-            }
-            error_log('LogIQ: Failed to create new log file');
-            return false;
+function logiq_get_log_file() {    
+    // Check WP_DEBUG_LOG setting first
+    if (defined('WP_DEBUG_LOG')) {
+        if (is_string(WP_DEBUG_LOG)) {
+            return WP_DEBUG_LOG;
+        } elseif (WP_DEBUG_LOG === true) {
+            $default_log = WP_CONTENT_DIR . '/debug.log';
+            return $default_log;
         }
     }
-    
-    // Sort files by modification time, newest first
-    usort($log_files, function($a, $b) {
-        return filemtime($b) - filemtime($a);
-    });
-    
-    // Get the most recent log file
-    $latest_log = $log_files[0];
-    
-    return $latest_log;
+
+    // Check PHP error_log setting
+    $ini_error_log = ini_get('error_log');
+    if (!empty($ini_error_log) && file_exists($ini_error_log)) {
+        return $ini_error_log;
+    }
+
+    // Scan for log files in wp-content directory
+    $logs = glob(WP_CONTENT_DIR . '/debug*.log');
+    if (!empty($logs)) {
+        // Sort by modification time, newest first
+        usort($logs, function($a, $b) {
+            return filemtime($b) - filemtime($a);
+        });
+        
+        $latest_log = $logs[0];
+        return $latest_log;
+    }
+
+    return null;
 }
 
 /**
@@ -115,7 +113,6 @@ function logiq_write_to_log($data) {
     $log_file = logiq_get_log_file();
     
     if ($log_file === false) {
-        error_log('LogIQ Error: No valid log file available');
         return false;
     }
     
@@ -124,7 +121,6 @@ function logiq_write_to_log($data) {
     $log_dir = dirname($log_file);
     if (!file_exists($log_dir)) {
         if (!wp_mkdir_p($log_dir)) {
-            error_log('LogIQ Error: Failed to create log directory: ' . $log_dir);
             return false;
         }
     }
@@ -133,7 +129,6 @@ function logiq_write_to_log($data) {
     $result = @file_put_contents($log_file, $data, FILE_APPEND | LOCK_EX);
     
     if ($result === false) {
-        error_log('LogIQ Debug - Failed to write to log file: ' . error_get_last()['message']);
         return false;
     }
     
@@ -198,7 +193,6 @@ function logiq_log($data, $level = LOGIQ_INFO, $context = '', $additional = arra
     if (!isset($logged_messages[$key])) {
         $logged_messages[$key] = true;
         if (!logiq_check_rate_limit()) {
-            error_log('LogIQ: Rate limit exceeded');
             return false;
         }
 
