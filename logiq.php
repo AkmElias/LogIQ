@@ -26,7 +26,6 @@ define('LOGIQ_PLUGIN_BASENAME', plugin_basename(__FILE__));
 // Include required files
 require_once LOGIQ_PLUGIN_DIR . 'includes/functions-logiq.php';
 require_once LOGIQ_PLUGIN_DIR . 'includes/class-logiq-admin.php';
-require_once LOGIQ_PLUGIN_DIR . 'includes/class-logiq-ajax.php';
 require_once LOGIQ_PLUGIN_DIR . 'includes/class-logiq-security.php';
 
 /**
@@ -54,7 +53,6 @@ class LogIQ {
     private function __construct() {
         // Initialize components
         $this->admin = new LogIQ_Admin();
-        $this->ajax = new LogIQ_Ajax();
         $this->security = new LogIQ_Security();
 
         // Register activation and deactivation hooks
