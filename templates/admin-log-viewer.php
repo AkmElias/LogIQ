@@ -13,7 +13,7 @@
 
     <div class="nav-tab-wrapper">
         <?php
-        // Define current level with a default value
+        // Define current level with a default value and sanitize
         $current_level = isset($_GET['level']) ? sanitize_key($_GET['level']) : 'all';
         
         // Initialize counts array with defaults

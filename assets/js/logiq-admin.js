@@ -92,57 +92,7 @@ jQuery(document).ready(function($) {
             return;
         }
 
-        // Make AJAX call to get editor URL
-        $.ajax({
-            url: logiq_ajax.ajax_url,
-            type: 'POST',
-            data: {
-                action: 'logiq_open_in_editor',
-                _ajax_nonce: logiq_ajax.nonce,
-                file: editorData.file,
-                line: editorData.line || 1
-            },
-            success: function(response) {
-                if (response.success && response.data.editor_url) {
-                    console.log('Opening editor:', response.data);
-                    
-                    // Try to open the editor using location.href first for better protocol handler support
-                    try {
-                        window.location.href = response.data.editor_url;
-                    } catch (error) {
-                        console.error('Failed to open with location.href:', error);
-                        // Fallback to window.open
-                        try {
-                            const opened = window.open(response.data.editor_url, '_blank');
-                            if (!opened) {
-                                console.error('window.open failed');
-                                alert('Failed to open editor. Please check your browser\'s popup settings.');
-                            }
-                        } catch (error) {
-                            console.error('Failed to open with window.open:', error);
-                            alert('Failed to open editor. Please check your browser\'s settings.');
-                        }
-                    }
-
-                    // Show message if no editor is installed
-                    if (!response.data.editor_info.is_installed) {
-                        console.warn('No editor installed');
-                        alert('No compatible editor found. Please install VS Code, Sublime Text, or PhpStorm.');
-                    }
-                } else {
-                    console.error('Failed to get editor URL:', response);
-                    if (response.data && response.data.message) {
-                        alert(response.data.message);
-                    } else {
-                        alert('Failed to open editor. Please check the console for details.');
-                    }
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('AJAX error:', {xhr, status, error});
-                alert('Failed to open editor. Please check the console for details.');
-            }
-        });
+        openInEditor(editorData.file, editorData.line || 1);
     });
 
     // Handle debug toggle
@@ -203,5 +153,38 @@ jQuery(document).ready(function($) {
         var sizes = ['B', 'KB', 'MB', 'GB'];
         var i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function openInEditor(file, line) {
+        jQuery.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'logiq_open_in_editor',
+                file: file,
+                line: line,
+                _ajax_nonce: logiq_ajax.nonce
+            },
+            success: function(response) {
+                if (response.success && response.data.editor_url) {
+                    try {
+                        // Try to open with location.href first
+                        window.location.href = response.data.editor_url;
+                    } catch (error) {
+                        // If that fails, try window.open
+                        try {
+                            window.open(response.data.editor_url, '_blank');
+                        } catch (error) {
+                            alert('Failed to open editor. Please check your editor settings.');
+                        }
+                    }
+                } else {
+                    alert('Failed to open editor. Please check your editor settings.');
+                }
+            },
+            error: function(xhr, status, error) {
+                alert('Failed to open editor. Please check your editor settings.');
+            }
+        });
     }
 }); 

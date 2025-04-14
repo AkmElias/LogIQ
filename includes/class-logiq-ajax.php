@@ -461,6 +461,7 @@ class LogIQ_Ajax {
     public function open_in_editor() {
         check_ajax_referer('logiq_ajax');
 
+        // Sanitize and validate input
         $file = isset($_POST['file']) ? sanitize_text_field($_POST['file']) : '';
         $line = isset($_POST['line']) ? absint($_POST['line']) : 1;
 
@@ -489,7 +490,7 @@ class LogIQ_Ajax {
         // Verify file exists
         if (!file_exists($file)) {
             wp_send_json_error(array(
-                'message' => sprintf(__('File not found: %s', 'logiq'), $file)
+                'message' => sprintf(__('File not found: %s', 'logiq'), esc_html($file))
             ));
             return;
         }
@@ -502,26 +503,18 @@ class LogIQ_Ajax {
             return;
         }
 
-        // Get editor URL using the helper function
-        $editor_url = logiq_construct_editor_url($file, $line);
+        // Get editor info and construct URL
         $editor_info = logiq_get_editor_info();
-
-        // Log the attempt for debugging
-        error_log(sprintf(
-            'LogIQ: Attempting to open file in editor. File: %s, Line: %d, Editor URL: %s',
-            $file,
-            $line,
-            $editor_url
-        ));
+        $editor_url = logiq_construct_editor_url($file, $line);
 
         wp_send_json_success(array(
-            'editor_url' => $editor_url,
+            'editor_url' => $editor_url, // Don't escape the URL as it needs to be used directly
             'editor_info' => $editor_info,
             'debug' => array(
-                'file' => $file,
-                'line' => $line,
+                'file' => esc_html($file),
+                'line' => esc_html($line),
                 'os' => PHP_OS,
-                'abspath' => defined('ABSPATH') ? ABSPATH : 'undefined'
+                'abspath' => defined('ABSPATH') ? esc_html(ABSPATH) : 'undefined'
             )
         ));
     }
