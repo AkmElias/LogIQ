@@ -27,13 +27,13 @@ class LogIQ_Ajax {
      * Get logs via AJAX
      */
     public function get_logs() {
-        // test array logs
-        // $data = array(
-        //     'action' => 'get_logs',
-        //     'user_id' => get_current_user_id(),
-        //     'timestamp' => current_time('mysql')
-        // );
-        // error_log('LogIQ Debug - Data: ' . print_r($data, true));
+        //test array logs
+        $data = array(
+            'action' => 'get_logs',
+            'user_id' => get_current_user_id(),
+            'timestamp' => current_time('mysql')
+        );
+        error_log('LogIQ Debug - Data: ' . print_r($data, true));
 
         // Verify AJAX request
         if (!LogIQ_Security::verify_ajax_request('get_logs')) {
@@ -68,7 +68,8 @@ class LogIQ_Ajax {
             return;
         }
 
-        $log_entries = array_filter(explode(PHP_EOL, $logs));
+        // Split logs by timestamp pattern instead of newlines
+        $log_entries = preg_split('/(?=\[\d{2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2}:\d{2} UTC\])/', $logs, -1, PREG_SPLIT_NO_EMPTY);
         $total_raw_entries = count($log_entries);
         
         $log_entries = array_reverse($log_entries);
@@ -77,7 +78,7 @@ class LogIQ_Ajax {
 
         // Parse all entries
         foreach ($log_entries as $entry) {
-            $parsed = $this->parse_log_entry($entry);
+            $parsed = $this->parse_log_entry(trim($entry));
             if ($parsed === null) {
                 continue;
             }
@@ -386,31 +387,42 @@ class LogIQ_Ajax {
             'data' => $entry // Store full entry as default data
         );
 
-        // Parse standard PHP error log format with timestamp
-        if (preg_match('/^\[(.*?)\] (.+)$/', $entry, $matches)) {
+        // Parse timestamp and message
+        if (preg_match('/^\[(.+?)\] (.+)$/s', $entry, $matches)) {
             $parsed['timestamp'] = $matches[1];
             $message = $matches[2];
 
-            // Determine the log level and context
-            if (strpos($message, 'PHP Notice:') !== false || strpos($message, '_load_textdomain_just_in_time') !== false) {
+            // Handle LogIQ Debug messages specifically
+            if (strpos($message, 'LogIQ Debug - Data:') !== false) {
+                $parsed['level'] = 'debug';
+                $parsed['context'] = 'logiq';
+                $parsed['data'] = $message; // Keep the entire message including array structure
+            }
+            // Other message types...
+            else if (strpos($message, 'PHP Notice:') !== false || strpos($message, '_load_textdomain_just_in_time') !== false) {
                 $parsed['level'] = 'notice';
                 $parsed['context'] = 'wp_notice';
+                $parsed['data'] = $message;
             } 
             else if (strpos($message, 'PHP Warning:') !== false || strpos($message, 'Warning:') !== false) {
                 $parsed['level'] = 'warning';
                 $parsed['context'] = 'php_warning';
+                $parsed['data'] = $message;
             }
             else if (strpos($message, 'PHP Deprecated:') !== false || strpos($message, 'deprecated') !== false || strpos($message, 'Deprecated:') !== false) {
                 $parsed['level'] = 'deprecated';
                 $parsed['context'] = 'php_deprecated';
+                $parsed['data'] = $message;
             }
             else if (strpos($message, 'PHP Fatal error:') !== false) {
                 $parsed['level'] = 'fatal';
                 $parsed['context'] = 'php_fatal';
+                $parsed['data'] = $message;
             }
             else if (strpos($message, 'PHP Error:') !== false) {
                 $parsed['level'] = 'error';
                 $parsed['context'] = 'php_error';
+                $parsed['data'] = $message;
             }
 
             // Special handling for dynamic property messages
@@ -418,8 +430,6 @@ class LogIQ_Ajax {
                 $parsed['level'] = 'deprecated';
                 $parsed['context'] = 'php_deprecated';
             }
-
-            $parsed['data'] = $message;
 
             // Extract file and line information
             if (preg_match('/in (.+?) on line (\d+)/', $message, $file_matches)) {
