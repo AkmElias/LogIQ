@@ -197,6 +197,14 @@ class LogIQ_Admin {
      * Enqueue admin scripts and styles
      */
     public function enqueue_admin_assets() {
+        $data = array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('logiq_ajax'),
+            'is_windows' => PHP_OS === 'WINNT',
+        );
+
+        error_log(print_r($data, true));
+
         if (!$this->is_logiq_page()) {
             return;
         }
@@ -297,7 +305,7 @@ class LogIQ_Admin {
 
         $page = isset($_POST['page']) ? absint($_POST['page']) : 1;
         $level = isset($_POST['level']) ? sanitize_text_field($_POST['level']) : 'all';
-        $per_page = 100;
+        $per_page = 10;
 
         $log_file = logiq_get_log_file();
         if (!$log_file || !file_exists($log_file)) {

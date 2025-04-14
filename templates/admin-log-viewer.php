@@ -1,14 +1,38 @@
 <div class="wrap">
     <h1><?php echo esc_html__('LogIQ Debug Logs', 'logiq'); ?></h1>
     
-    <div class="logiq-actions">
+    <div class="logiq-controls">
+        <div class="logiq-filters">
+            <div class="logiq-level-filters">
+                <a href="#" class="logiq-level-filter active" data-level="all"><?php echo esc_html__('All', 'logiq'); ?></a>
+                <a href="#" class="logiq-level-filter" data-level="error"><?php echo esc_html__('Errors', 'logiq'); ?></a>
+                <a href="#" class="logiq-level-filter" data-level="warning"><?php echo esc_html__('Warnings', 'logiq'); ?></a>
+                <a href="#" class="logiq-level-filter" data-level="notice"><?php echo esc_html__('Notices', 'logiq'); ?></a>
+                <a href="#" class="logiq-level-filter" data-level="info"><?php echo esc_html__('Info', 'logiq'); ?></a>
+                <a href="#" class="logiq-level-filter" data-level="debug"><?php echo esc_html__('Debug', 'logiq'); ?></a>
+            </div>
+            <div class="logiq-per-page">
+                <label for="logiq-per-page"><?php echo esc_html__('Logs per page:', 'logiq'); ?></label>
+                <select id="logiq-per-page">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100" selected>100</option>
+                    <option value="250">250</option>
+                    <option value="500">500</option>
+                    <option value="1000">1000</option>
+                </select>
+            </div>
+        </div>
         <?php wp_nonce_field('logiq_admin_nonce', 'logiq_nonce'); ?>
-        <button type="button" id="logiq-refresh-logs" class="button">
-            <?php echo esc_html__('Refresh Logs', 'logiq'); ?>
-        </button>
-        <button type="button" id="logiq-clear-logs" class="button button-secondary">
-            <?php echo esc_html__('Clear Logs', 'logiq'); ?>
-        </button>
+        <div class="logiq-actions">
+            <button type="button" id="logiq-refresh-logs" class="button">
+                <?php echo esc_html__('Refresh Logs', 'logiq'); ?>
+            </button>
+            <button type="button" id="logiq-clear-logs" class="button button-secondary">
+                <?php echo esc_html__('Clear Logs', 'logiq'); ?>
+            </button>
+        </div>
     </div>
 
     <div class="nav-tab-wrapper">
