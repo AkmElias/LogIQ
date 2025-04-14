@@ -1,161 +1,113 @@
-# LogIQ - Intelligent Debug Logging for WordPress
+# LogIQ - WordPress Debug Log Viewer
 
-![LogIQ Banner](/.wordpress-org/banner-772x250.png)
+LogIQ is a powerful WordPress plugin that provides a user-friendly interface for viewing, managing, and analyzing WordPress debug logs. It integrates seamlessly with WordPress's built-in logging system and offers advanced filtering and visualization capabilities.
 
-[![WordPress Plugin Version](https://img.shields.io/wordpress/plugin/v/logiq)](https://wordpress.org/plugins/logiq/)
-[![WordPress Tested Up To](https://img.shields.io/wordpress/v/logiq)](https://wordpress.org/plugins/logiq/)
-[![PHP Tested Version](https://img.shields.io/badge/PHP-7.4%2B-blue)](https://wordpress.org/plugins/logiq/)
-[![License](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
+## Features
 
-LogIQ is a powerful, developer-friendly logging solution for WordPress that provides structured logging with an elegant interface.
+### Log Viewing
+- Real-time log viewing with automatic updates
+- Clean, organized display of log entries with timestamps
+- Syntax highlighting for different log types
+- Pagination support for handling large log files
+- Responsive design that works on all screen sizes
 
-## 🚀 Features
-
-- **Beautiful Interface**
-  - Tabbed navigation for different log types
-  - Color-coded log levels
-  - Real-time AJAX updates
-  - Responsive design
-
-- **Log Types Support**
+### Log Filtering
+- Filter logs by severity level:
   - Fatal Errors
-  - Regular Errors
+  - Errors
   - Warnings
-  - Deprecated Notices
-  - Info Messages
-  - Debug Data
+  - Notices
+  - Deprecated
+  - Debug
+  - Info
+- Context-aware log categorization
+- Smart parsing of PHP errors and WordPress notices
 
-- **Developer Tools**
-  - Stack traces for errors
-  - JSON structured logging
-  - Context tracking
-  - File and line information
-  - User tracking
+### Security
+- Role-based access control (requires manage_options capability)
+- Secure log file handling
+- Input sanitization and validation
+- Protection against directory traversal
+- Sensitive data filtering (passwords, API keys, auth tokens)
 
-- **Security Features**
-  - Rate limiting
-  - Data sanitization
-  - Access control
-  - Secure file storage
-  - Log rotation
+### Log Management
+- Clear logs with confirmation
+- Log file information display (size, modification time)
+- Automatic log file detection
+- Support for custom log file locations
 
-## 📦 Installation
+### Debug Information
+- File and line number tracking for errors
+- Stack traces for exceptions
+- Context preservation for debugging
+- Detailed debug information panel
 
-1. Download the latest release
-2. Upload to `/wp-content/plugins/`
-3. Activate through WordPress admin
-4. Go to Tools > LogIQ Debug
+## Requirements
+- WordPress 5.8 or higher
+- PHP 7.4 or higher
+- WP_DEBUG must be enabled
+- Write permissions for the log directory
 
-## 🔧 Usage
+## Installation
 
-### Basic Logging
+1. Upload the `logiq` directory to the `/wp-content/plugins/` directory
+2. Activate the plugin through the 'Plugins' menu in WordPress
+3. Navigate to Tools > LogIQ to view your logs
 
-```php
-// Log any data type
-logiq_log($data, LOGIQ_INFO, 'context');
+## Configuration
 
-// Log arrays
-logiq_log([
-    'user' => wp_get_current_user(),
-    'action' => 'login',
-    'timestamp' => time()
-], LOGIQ_INFO);
+### Basic Setup
+1. Ensure `WP_DEBUG` is set to `true` in your `wp-config.php`
+2. Set `WP_DEBUG_LOG` to `true` to enable logging
+3. Access the LogIQ interface from the WordPress admin menu under Tools
 
-// Log errors
-logiq_log_error('Database connection failed');
+### Advanced Configuration
+The plugin automatically detects log files in the following order:
+1. Custom path specified in `WP_DEBUG_LOG`
+2. Default WordPress debug.log in wp-content directory
+3. PHP error_log location
+4. Any debug*.log files in wp-content directory
 
-// Log exceptions
-try {
-    // Your code
-} catch (Exception $e) {
-    logiq_log_exception($e, 'custom_context');
-}
-```
+## Usage
 
-### Log Levels
+### Viewing Logs
+1. Navigate to Tools > LogIQ in your WordPress admin panel
+2. Logs are displayed with the most recent entries at the top
+3. Use the filter buttons to show specific log types
+4. Click on log entries to expand detailed information
 
-```php
-// Available log levels
-logiq_log($data, LOGIQ_FATAL);     // Fatal errors
-logiq_log($data, LOGIQ_ERROR);     // Regular errors
-logiq_log($data, LOGIQ_WARNING);   // Warnings
-logiq_log($data, LOGIQ_INFO);      // Information
-logiq_log($data, LOGIQ_DEBUG);     // Debug data
-logiq_log($data, LOGIQ_DEPRECATED);// Deprecated notices
-```
+### Managing Logs
+- Use the "Clear Logs" button to empty the log file
+- Confirmation is required before logs are cleared
+- File permissions are automatically checked
 
-## 🛡️ Security
+### Security Considerations
+- Only users with `manage_options` capability can access logs
+- Sensitive data is automatically filtered from log display
+- All user inputs are sanitized and validated
 
-LogIQ implements several security measures:
+## Support
 
-- Rate limiting to prevent log flooding
-- Proper data sanitization
-- Admin-only access control
-- Secure log file storage
-- Automatic log rotation
-- XSS prevention
+For bug reports and feature requests, please use the [GitHub issue tracker](https://github.com/yourusername/logiq/issues).
 
-## 🌐 Internationalization
+## Contributing
 
-LogIQ is fully translatable:
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-- Uses WordPress i18n
-- POT file included
-- RTL support
-- Translation ready
+## License
 
-## 🔄 API
+This plugin is licensed under the GPL v2 or later.
 
-### Functions
+## Credits
 
-```php
-logiq_log($data, $level = LOGIQ_INFO, $context = '');
-logiq_log_error($message, $context = '');
-logiq_log_exception($exception, $context = '');
-logiq_get_log_file();
-logiq_clear_logs();
-```
+Developed by [Your Name/Company]
 
-### Hooks
+## Changelog
 
-```php
-// Filters
-add_filter('logiq_log_data', 'your_function');
-add_filter('logiq_log_level', 'your_function');
-add_filter('logiq_log_context', 'your_function');
-
-// Actions
-add_action('logiq_before_log', 'your_function');
-add_action('logiq_after_log', 'your_function');
-add_action('logiq_logs_cleared', 'your_function');
-```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md).
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Submit a pull request
-
-## 📝 License
-
-LogIQ is licensed under the GPL v2 or later.
-
-See [LICENSE](LICENSE) for more information.
-
-## 👥 Credits
-
-Developed by [A K M Elias](https://akmelias.com)
-
-## 📞 Support
-
-- [WordPress.org Plugin Page](https://wordpress.org/plugins/logiq/)
-- [GitHub Issues](https://github.com/yourusername/logiq/issues)
-- [Documentation](https://github.com/yourusername/logiq/wiki)
-
-## 🔄 Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for all version updates. 
+### 1.0.0
+- Initial release
+- Real-time log viewing
+- Log filtering by type
+- Security enhancements
+- Responsive design
+- WordPress debug log integration 
