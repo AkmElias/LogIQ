@@ -189,10 +189,7 @@ function logiq_log($data, $level = LOGIQ_INFO, $context = '', $additional = arra
     // Only log if we haven't seen this exact message before
     if (!isset($logged_messages[$key])) {
         $logged_messages[$key] = true;
-        if (!logiq_check_rate_limit()) {
-            return false;
-        }
-
+        
         // Check if debug logging is enabled
         if (!get_option('logiq_debug_enabled', true)) {
             return false;
@@ -216,12 +213,11 @@ function logiq_log($data, $level = LOGIQ_INFO, $context = '', $additional = arra
             'data'      => logiq_prepare_data($data)
         );
 
-        // Convert to JSON
-        $log_line = wp_json_encode($log_entry) . PHP_EOL;
-
-        // Write to log file
-        logiq_check_log_rotation();
-        return logiq_write_to_log($log_line);
+        // Convert to JSON and write to debug.log
+        $log_line = wp_json_encode($log_entry);
+        error_log($log_line);
+        
+        return true;
     }
     return false;
 }
@@ -242,7 +238,7 @@ function logiq_log_exception(Exception $exception, $context = '') {
         'trace'   => $exception->getTraceAsString(),
     );
 
-    return logiq_log($exception_data, $context);
+    return logiq_log($exception_data, LOGIQ_ERROR, $context);
 }
 
 // Add this function temporarily for testing
@@ -303,26 +299,16 @@ function logiq_fatal_error_handler() {
         );
 
         if (in_array($error['type'], $fatal_errors)) {
-            // Simple file logging without using WordPress functions
-            $log_dir = dirname(__FILE__) . '/../logiq-logs';
-            $log_file = $log_dir . '/fatal-errors.log';
-            
-            // Create directory if it doesn't exist
-            if (!file_exists($log_dir)) {
-                mkdir($log_dir, 0755, true);
-            }
-
-            // Format the error message
-            $error_message = sprintf(
-                "[%s] Fatal Error: %s in %s on line %d\n",
-                date('Y-m-d H:i:s'),
-                $error['message'],
-                $error['file'],
-                $error['line']
+            logiq_log(
+                sprintf(
+                    "Fatal Error: %s in %s on line %d",
+                    $error['message'],
+                    $error['file'],
+                    $error['line']
+                ),
+                LOGIQ_FATAL,
+                'fatal_error'
             );
-
-            // Write directly to file without using WordPress functions
-            error_log($error_message, 3, $log_file);
         }
     }
 }

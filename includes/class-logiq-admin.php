@@ -47,13 +47,13 @@ class LogIQ_Admin {
             array(
                 'type' => 'boolean',
                 'sanitize_callback' => array($this, 'handle_debug_toggle'),
-                'default' => false,
+                'default' => true,
             )
         );
     }
 
     /**
-     * Handle debug toggle and update WP_DEBUG
+     * Handle debug toggle and update WP_DEBUG_LOG
      */
     public function handle_debug_toggle($value) {
         $value = (bool) $value;
@@ -65,19 +65,31 @@ class LogIQ_Admin {
             $config_content = file_get_contents($config_file);
             
             if ($value) {
-                // Enable debug
-                $config_content = preg_replace(
-                    "/(define\s*\(\s*'WP_DEBUG'\s*,\s*)(?:true|false)(\s*\)\s*;)/i",
-                    "$1true$2",
-                    $config_content
-                );
+                // Enable debug logging
+                if (!defined('WP_DEBUG_LOG')) {
+                    // Add WP_DEBUG_LOG if not defined
+                    $config_content = preg_replace(
+                        "/(define\s*\(\s*'WP_DEBUG'\s*,\s*)(?:true|false)(\s*\)\s*;)/i",
+                        "$1true$2\ndefine('WP_DEBUG_LOG', true);",
+                        $config_content
+                    );
+                } else {
+                    // Update existing WP_DEBUG_LOG
+                    $config_content = preg_replace(
+                        "/(define\s*\(\s*'WP_DEBUG_LOG'\s*,\s*)(?:true|false)(\s*\)\s*;)/i",
+                        "$1true$2",
+                        $config_content
+                    );
+                }
             } else {
-                // Disable debug
-                $config_content = preg_replace(
-                    "/(define\s*\(\s*'WP_DEBUG'\s*,\s*)(?:true|false)(\s*\)\s*;)/i",
-                    "$1false$2",
-                    $config_content
-                );
+                // Disable debug logging
+                if (defined('WP_DEBUG_LOG')) {
+                    $config_content = preg_replace(
+                        "/(define\s*\(\s*'WP_DEBUG_LOG'\s*,\s*)(?:true|false)(\s*\)\s*;)/i",
+                        "$1false$2",
+                        $config_content
+                    );
+                }
             }
             
             // Write the changes back to wp-config.php
@@ -90,12 +102,18 @@ class LogIQ_Admin {
     }
 
     /**
+     * Check if current page is a LogIQ page
+     */
+    private function is_logiq_page() {
+        $screen = get_current_screen();
+        return $screen && strpos($screen->id, 'logiq') !== false;
+    }
+
+    /**
      * Enqueue admin assets
-     *
-     * @param string $hook The current admin page.
      */
     public function enqueue_admin_assets($hook) {
-        if ('tools_page_logiq-debug' !== $hook) {
+        if (!$this->is_logiq_page()) {
             return;
         }
 
@@ -114,17 +132,13 @@ class LogIQ_Admin {
             true
         );
 
-        wp_localize_script(
-            'logiq-admin',
-            'logiqAdmin',
-            array(
-                'ajaxUrl'   => admin_url('admin-ajax.php'),
-                'nonce'     => wp_create_nonce('logiq_admin_nonce'),
-                'i18n'      => array(
-                    'confirmClear' => __('Are you sure you want to clear all logs?', 'logiq'),
-                ),
+        wp_localize_script('logiq-admin', 'logiqAdmin', array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('logiq_admin_nonce'),
+            'i18n' => array(
+                'confirmClear' => __('Are you sure you want to clear all logs?', 'logiq')
             )
-        );
+        ));
     }
 
     /**
@@ -156,17 +170,17 @@ class LogIQ_Admin {
                 ?>
                 <table class="form-table">
                     <tr>
-                        <th scope="row"><?php _e('Debug Mode', 'logiq'); ?></th>
+                        <th scope="row"><?php _e('Debug Logging', 'logiq'); ?></th>
                         <td>
                             <label>
                                 <input type="checkbox" 
                                        name="logiq_debug_enabled" 
                                        value="1" 
-                                       <?php checked(get_option('logiq_debug_enabled'), true); ?>>
-                                <?php _e('Enable debug logging', 'logiq'); ?>
+                                       <?php checked(get_option('logiq_debug_enabled', true)); ?>>
+                                <?php _e('Enable WordPress debug logging', 'logiq'); ?>
                             </label>
                             <p class="description">
-                                <?php _e('When enabled, LogIQ will log debug information to the log file.', 'logiq'); ?>
+                                <?php _e('When enabled, WordPress will log debug information to the debug.log file.', 'logiq'); ?>
                             </p>
                         </td>
                     </tr>
