@@ -39,101 +39,209 @@ msgstr ""
 msgid "https://akmelias.com"
 msgstr ""
 
-#: includes/class-logiq-admin.php:32
-#: includes/class-logiq-admin.php:33
+#: includes/class-logiq-admin.php:36
+#: includes/class-logiq-admin.php:37
 msgid "LogIQ Debug"
 msgstr ""
 
-#: includes/class-logiq-admin.php:87
-msgid "Are you sure you want to clear all logs?"
-msgstr ""
-
-#: includes/class-logiq-admin.php:98
-#: includes/class-logiq-security.php:49
+#: includes/class-logiq-admin.php:60
+#: includes/class-logiq-security.php:48
 msgid "You do not have sufficient permissions to access this page."
 msgstr ""
 
-#: includes/class-logiq-admin.php:111
-msgid "Debug Mode"
+#: includes/class-logiq-admin.php:66
+msgid "Debug Settings"
 msgstr ""
 
-#: includes/class-logiq-admin.php:118
-msgid "Enable debug logging"
+#: includes/class-logiq-admin.php:74
+msgid "Debug Logging"
 msgstr ""
 
-#: includes/class-logiq-admin.php:121
-msgid "When enabled, LogIQ will log debug information to the log file."
+#: includes/class-logiq-admin.php:81
+msgid "Enable WordPress debug logging"
 msgstr ""
 
-#: includes/class-logiq-ajax.php:40
-#: includes/class-logiq-ajax.php:99
-msgid "No logs found."
+#: includes/class-logiq-admin.php:84
+msgid "When enabled, WordPress will log debug information to the debug.log file."
 msgstr ""
 
-#: includes/class-logiq-ajax.php:119
-msgid "%d items"
-msgstr ""
-
-#: includes/class-logiq-ajax.php:127
-msgid "First page"
-msgstr ""
-
-#: includes/class-logiq-ajax.php:138
-msgid "Previous page"
-msgstr ""
-
-#: includes/class-logiq-ajax.php:156
-msgid "Next page"
-msgstr ""
-
-#: includes/class-logiq-ajax.php:167
-msgid "Last page"
-msgstr ""
-
-#: includes/class-logiq-ajax.php:194
-msgid "Failed to clear logs."
-msgstr ""
-
-#: includes/class-logiq-ajax.php:198
-msgid "Logs cleared successfully."
-msgstr ""
-
-#: templates/admin-log-viewer.php:2
+#: includes/class-logiq-admin.php:94
 msgid "LogIQ Debug Logs"
 msgstr ""
 
-#: templates/admin-log-viewer.php:7
+#: includes/class-logiq-admin.php:97
+#: templates/admin-log-viewer.php:6
 msgid "Refresh Logs"
 msgstr ""
 
-#: templates/admin-log-viewer.php:10
+#: includes/class-logiq-admin.php:100
+#: templates/admin-log-viewer.php:9
 msgid "Clear Logs"
 msgstr ""
 
-#: templates/admin-log-viewer.php:17
+#: includes/class-logiq-admin.php:106
+#: templates/admin-log-viewer.php:25
 msgid "All Logs"
 msgstr ""
 
-#: templates/admin-log-viewer.php:18
+#: includes/class-logiq-admin.php:109
+#: templates/admin-log-viewer.php:26
 msgid "Fatal"
 msgstr ""
 
-#: templates/admin-log-viewer.php:19
+#: includes/class-logiq-admin.php:112
+#: templates/admin-log-viewer.php:27
 msgid "Errors"
 msgstr ""
 
-#: templates/admin-log-viewer.php:20
+#: includes/class-logiq-admin.php:115
+#: templates/admin-log-viewer.php:28
 msgid "Warnings"
 msgstr ""
 
-#: templates/admin-log-viewer.php:21
+#: includes/class-logiq-admin.php:118
+#: templates/admin-log-viewer.php:29
+msgid "Notices"
+msgstr ""
+
+#: includes/class-logiq-admin.php:121
+#: templates/admin-log-viewer.php:30
 msgid "Info"
 msgstr ""
 
-#: templates/admin-log-viewer.php:22
+#: includes/class-logiq-admin.php:124
+#: templates/admin-log-viewer.php:31
 msgid "Debug"
 msgstr ""
 
-#: templates/admin-log-viewer.php:23
+#: includes/class-logiq-admin.php:127
+#: templates/admin-log-viewer.php:32
 msgid "Deprecated"
+msgstr ""
+
+#: includes/class-logiq-admin.php:144
+#: includes/class-logiq-admin.php:291
+#: includes/class-logiq-admin.php:411
+#: includes/class-logiq-admin.php:435
+msgid "Permission denied."
+msgstr ""
+
+#: includes/class-logiq-admin.php:152
+msgid "wp-config.php not found or not writable."
+msgstr ""
+
+#: includes/class-logiq-admin.php:183
+msgid "Failed to update wp-config.php."
+msgstr ""
+
+#: includes/class-logiq-admin.php:304
+#: includes/class-logiq-admin.php:381
+#: includes/class-logiq-ajax.php:56
+#: includes/class-logiq-ajax.php:124
+msgid "No logs found."
+msgstr ""
+
+#: includes/class-logiq-admin.php:323
+#: includes/class-logiq-ajax.php:66
+msgid "Could not read log file."
+msgstr ""
+
+#: includes/class-logiq-admin.php:419
+msgid "No log file found."
+msgstr ""
+
+#: includes/class-logiq-admin.php:426
+msgid "Failed to clear log file."
+msgstr ""
+
+#: includes/class-logiq-admin.php:533
+#: includes/class-logiq-ajax.php:217
+msgid "First page"
+msgstr ""
+
+#: includes/class-logiq-admin.php:542
+#: includes/class-logiq-ajax.php:228
+msgid "Previous page"
+msgstr ""
+
+#: includes/class-logiq-admin.php:558
+#: includes/class-logiq-ajax.php:246
+msgid "Next page"
+msgstr ""
+
+#: includes/class-logiq-admin.php:567
+#: includes/class-logiq-ajax.php:257
+msgid "Last page"
+msgstr ""
+
+#: includes/class-logiq-ajax.php:45
+msgid "Invalid log file."
+msgstr ""
+
+#: includes/class-logiq-ajax.php:209
+msgid "%d items"
+msgstr ""
+
+#: includes/class-logiq-ajax.php:276
+msgid "Confirmation required"
+msgstr ""
+
+#: includes/class-logiq-ajax.php:283
+msgid "Could not determine log file location."
+msgstr ""
+
+#: includes/class-logiq-ajax.php:289
+msgid "Log file not found: %s"
+msgstr ""
+
+#: includes/class-logiq-ajax.php:297
+msgid "Log file is not writable: %s"
+msgstr ""
+
+#: includes/class-logiq-ajax.php:308
+msgid "Failed to clear log file: %s"
+msgstr ""
+
+#: includes/class-logiq-ajax.php:317
+msgid "Logs cleared successfully."
+msgstr ""
+
+#: includes/class-logiq-ajax.php:465
+msgid "No file specified."
+msgstr ""
+
+#: includes/class-logiq-ajax.php:479
+msgid "Unable to determine WordPress root path."
+msgstr ""
+
+#: includes/class-logiq-ajax.php:488
+msgid "File not found: %s"
+msgstr ""
+
+#: includes/class-logiq-ajax.php:496
+msgid "Access to this file is not allowed for security reasons."
+msgstr ""
+
+#: includes/class-logiq-security.php:241
+msgid "Invalid security token."
+msgstr ""
+
+#: includes/class-logiq-security.php:246
+msgid "Insufficient permissions."
+msgstr ""
+
+#: includes/functions-logiq.php:108
+msgid "LogIQ requires PHP 7.4 or higher. Your current PHP version is %s."
+msgstr ""
+
+#: includes/functions-logiq.php:117
+msgid "LogIQ requires WordPress 5.8 or higher. Your current WordPress version is %s."
+msgstr ""
+
+#: logiq.php:80
+msgid "LogIQ Activation Error"
+msgstr ""
+
+#: logiq.php:82
+msgid "Return to plugins page"
 msgstr ""

@@ -1,13 +1,13 @@
 <div class="wrap">
-    <h1><?php esc_html_e('LogIQ Debug Logs', 'logiq'); ?></h1>
+    <h1><?php echo esc_html__('LogIQ Debug Logs', 'logiq'); ?></h1>
     
     <div class="logiq-actions">
         <?php wp_nonce_field('logiq_admin_nonce', 'logiq_nonce'); ?>
         <button type="button" id="logiq-refresh-logs" class="button">
-            <?php esc_html_e('Refresh Logs', 'logiq'); ?>
+            <?php echo esc_html__('Refresh Logs', 'logiq'); ?>
         </button>
         <button type="button" id="logiq-clear-logs" class="button button-secondary">
-            <?php esc_html_e('Clear Logs', 'logiq'); ?>
+            <?php echo esc_html__('Clear Logs', 'logiq'); ?>
         </button>
     </div>
 
@@ -23,14 +23,14 @@
         );
 
         $log_levels = array(
-            'all' => __('All Logs', 'logiq'),
-            'fatal' => __('Fatal', 'logiq'),
-            'error' => __('Errors', 'logiq'),
-            'warning' => __('Warnings', 'logiq'),
-            'notice' => __('Notices', 'logiq'),
-            'info' => __('Info', 'logiq'),
-            'debug' => __('Debug', 'logiq'),
-            'deprecated' => __('Deprecated', 'logiq')
+            'all' => esc_html__('All Logs', 'logiq'),
+            'fatal' => esc_html__('Fatal', 'logiq'),
+            'error' => esc_html__('Errors', 'logiq'),
+            'warning' => esc_html__('Warnings', 'logiq'),
+            'notice' => esc_html__('Notices', 'logiq'),
+            'info' => esc_html__('Info', 'logiq'),
+            'debug' => esc_html__('Debug', 'logiq'),
+            'deprecated' => esc_html__('Deprecated', 'logiq')
         );
 
         foreach ($log_levels as $level => $label) {
