@@ -121,4 +121,106 @@ function logiq_check_system_compatibility() {
     }
     
     return $issues;
+}
+
+/**
+ * Get the default editor protocol and path
+ * 
+ * @return array Array containing editor protocol and whether it's installed
+ */
+function logiq_get_editor_info() {
+    $editor_info = array(
+        'protocol' => 'file://',  // Default fallback
+        'is_installed' => false
+    );
+
+    // Check for VS Code
+    $vscode_paths = array(
+        'Darwin' => '/Applications/Visual Studio Code.app',  // macOS
+        'WINNT' => 'C:\\Program Files\\Microsoft VS Code\\Code.exe',  // Windows 64-bit
+        'Linux' => '/usr/bin/code'  // Linux
+    );
+
+    $os = PHP_OS;
+    if (isset($vscode_paths[$os]) && file_exists($vscode_paths[$os])) {
+        $editor_info['protocol'] = 'vscode://file';
+        $editor_info['is_installed'] = true;
+        return $editor_info;
+    }
+
+    // Check for Sublime Text
+    $sublime_paths = array(
+        'Darwin' => '/Applications/Sublime Text.app',
+        'WINNT' => 'C:\\Program Files\\Sublime Text\\sublime_text.exe',
+        'Linux' => '/usr/bin/subl'
+    );
+
+    if (isset($sublime_paths[$os]) && file_exists($sublime_paths[$os])) {
+        $editor_info['protocol'] = 'subl://open';
+        $editor_info['is_installed'] = true;
+        return $editor_info;
+    }
+
+    // Check for PhpStorm
+    $phpstorm_paths = array(
+        'Darwin' => '/Applications/PhpStorm.app',
+        'WINNT' => 'C:\\Program Files\\JetBrains\\PhpStorm*',
+        'Linux' => '/usr/bin/phpstorm'
+    );
+
+    if (isset($phpstorm_paths[$os])) {
+        $path = $phpstorm_paths[$os];
+        if ($os === 'WINNT') {
+            // Use glob for Windows PhpStorm's versioned directories
+            $matches = glob($path);
+            if (!empty($matches)) {
+                $editor_info['protocol'] = 'phpstorm://open';
+                $editor_info['is_installed'] = true;
+                return $editor_info;
+            }
+        } elseif (file_exists($path)) {
+            $editor_info['protocol'] = 'phpstorm://open';
+            $editor_info['is_installed'] = true;
+            return $editor_info;
+        }
+    }
+
+    return $editor_info;
+}
+
+/**
+ * Construct editor URL for a file
+ * 
+ * @param string $file_path File path
+ * @param int $line Line number
+ * @return string Editor URL
+ */
+function logiq_construct_editor_url($file_path, $line = 1) {
+    $editor_info = logiq_get_editor_info();
+    $protocol = $editor_info['protocol'];
+
+    // Format the file path based on OS
+    if (PHP_OS === 'WINNT') {
+        $file_path = str_replace('/', '\\', $file_path);
+    } else {
+        $file_path = str_replace('\\', '/', $file_path);
+    }
+
+    // Ensure absolute path
+    if (defined('ABSPATH') && strpos($file_path, ABSPATH) === false) {
+        $file_path = ABSPATH . $file_path;
+    }
+
+    // Construct URL based on editor protocol
+    switch ($protocol) {
+        case 'vscode://file':
+            return $protocol . '/' . $file_path . ':' . $line;
+            
+        case 'subl://open':
+        case 'phpstorm://open':
+            return $protocol . '?file=' . urlencode($file_path) . '&line=' . $line;
+            
+        default:
+            return 'file://' . $file_path;
+    }
 } 

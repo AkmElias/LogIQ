@@ -21,6 +21,7 @@ class LogIQ_Ajax {
     public function __construct() {
         add_action('wp_ajax_logiq_get_logs', array($this, 'get_logs'));
         add_action('wp_ajax_logiq_clear_logs', array($this, 'clear_logs'));
+        add_action('wp_ajax_logiq_open_in_editor', array($this, 'open_in_editor'));
     }
 
     /**
@@ -323,51 +324,44 @@ class LogIQ_Ajax {
     /**
      * Format a single log entry
      *
-     * @param array $log_data The log entry data
+     * @param array $entry The log entry data
      * @return string Formatted HTML
      */
-    private function format_log_entry($log_data) {
-        $level = isset($log_data['level']) ? esc_attr($log_data['level']) : 'info';
-        $context = isset($log_data['context']) ? esc_attr($log_data['context']) : '';
+    private function format_log_entry($entry) {
+        $level_class = 'logiq-level-' . $entry['level'];
+        $context_class = 'logiq-context-' . $entry['context'];
         
-        $output = sprintf('<div class="log-entry" data-level="%s" data-context="%s">', $level, $context);
+        $output = '<div class="logiq-entry ' . esc_attr($level_class) . ' ' . esc_attr($context_class) . '">';
+        $output .= '<div class="logiq-entry-header">';
+        $output .= '<span class="logiq-timestamp">' . esc_html($entry['timestamp']) . '</span>';
+        $output .= '<span class="logiq-level">' . esc_html(strtoupper($entry['level'])) . '</span>';
         
-        // Timestamp
-        $output .= sprintf(
-            '<div class="log-timestamp">%s</div>',
-            esc_html($log_data['timestamp'])
-        );
-
-        // Level indicator with context
-        $output .= sprintf(
-            '<div class="log-level">%s%s</div>',
-            esc_html(strtoupper($level)),
-            $context ? ' - ' . esc_html($context) : ''
-        );
-
-        // File and line
-        if (!empty($log_data['file'])) {
-            $output .= sprintf(
-                '<div class="log-file" title="%s">%s:%d</div>',
-                esc_attr($log_data['file']),
-                esc_html($log_data['file']),
-                intval($log_data['line'])
+        // Add file and line information with editor link if available
+        if (!empty($entry['file']) && !empty($entry['line'])) {
+            $file_path = $entry['file'];
+            if (defined('ABSPATH') && strpos($file_path, ABSPATH) === false) {
+                $file_path = ABSPATH . $file_path;
+            }
+            
+            $editor_data = array(
+                'file' => $file_path,
+                'line' => $entry['line']
             );
+            
+            $output .= '<span class="logiq-file-info">';
+            $output .= '<a href="#" class="logiq-editor-link" data-editor=\'' . esc_attr(json_encode($editor_data)) . '\'>';
+            $output .= esc_html($entry['file']) . ':' . esc_html($entry['line']);
+            $output .= '</a>';
+            $output .= '</span>';
         }
-
-        // Data/Message with better wrapping
-        $output .= '<div class="log-data">';
-        if (is_array($log_data['data'])) {
-            $output .= '<pre>' . esc_html(print_r($log_data['data'], true)) . '</pre>';
-        } else {
-            // Format long lines better and handle HTML in notices
-            $message = $log_data['context'] === 'wp_notice' ? 
-                wp_kses($log_data['data'], array('code' => array(), 'strong' => array(), 'a' => array('href' => array()))) :
-                esc_html($log_data['data']);
-            $output .= '<pre>' . $message . '</pre>';
-        }
+        
+        $output .= '</div>'; // End header
+        
+        // Format the data based on type
+        $output .= '<div class="logiq-entry-content">';
+        $output .= '<pre>' . esc_html($entry['data']) . '</pre>';
         $output .= '</div>';
-
+        
         $output .= '</div>';
         return $output;
     }
@@ -396,7 +390,7 @@ class LogIQ_Ajax {
             if (strpos($message, 'LogIQ Debug - Data:') !== false) {
                 $parsed['level'] = 'debug';
                 $parsed['context'] = 'logiq';
-                $parsed['data'] = $message; // Keep the entire message including array structure
+                $parsed['data'] = $message;
             }
             // Other message types...
             else if (strpos($message, 'PHP Notice:') !== false || strpos($message, '_load_textdomain_just_in_time') !== false) {
@@ -431,13 +425,104 @@ class LogIQ_Ajax {
                 $parsed['context'] = 'php_deprecated';
             }
 
-            // Extract file and line information
-            if (preg_match('/in (.+?) on line (\d+)/', $message, $file_matches)) {
-                $parsed['file'] = str_replace(ABSPATH, '', $file_matches[1]);
-                $parsed['line'] = intval($file_matches[2]);
+            // Extract file and line information - try multiple patterns
+            $file_patterns = array(
+                '/in (.+?) on line (\d+)/',           // Standard PHP format
+                '/in ([^:]+):(\d+)/',                 // Alternative format
+                '/([^:]+):(\d+)$/',                   // Simple format at end
+                '/([^:]+) on line (\d+)/',           // Format without 'in'
+                '/([^:]+):(\d+)(?:\)|$)/'            // Format with optional closing parenthesis
+            );
+
+            foreach ($file_patterns as $pattern) {
+                if (preg_match($pattern, $message, $file_matches)) {
+                    $file = $file_matches[1];
+                    // Clean up the file path
+                    $file = trim($file, "'\"()");
+                    // Convert Windows backslashes to forward slashes
+                    $file = str_replace('\\', '/', $file);
+                    // Remove ABSPATH if it's at the start
+                    if (defined('ABSPATH')) {
+                        $file = str_replace(ABSPATH, '', $file);
+                    }
+                    $parsed['file'] = $file;
+                    $parsed['line'] = intval($file_matches[2]);
+                    break;
+                }
             }
         }
 
         return $parsed;
+    }
+
+    /**
+     * Open file in editor
+     */
+    public function open_in_editor() {
+        check_ajax_referer('logiq_ajax');
+
+        $file = isset($_POST['file']) ? sanitize_text_field($_POST['file']) : '';
+        $line = isset($_POST['line']) ? absint($_POST['line']) : 1;
+
+        if (empty($file)) {
+            wp_send_json_error(array(
+                'message' => __('No file specified.', 'logiq')
+            ));
+            return;
+        }
+
+        // Clean up the file path
+        $file = wp_normalize_path($file);
+        
+        // If path is relative, make it absolute
+        if (!path_is_absolute($file)) {
+            if (defined('ABSPATH')) {
+                $file = ABSPATH . ltrim($file, '/\\');
+            } else {
+                wp_send_json_error(array(
+                    'message' => __('Unable to determine WordPress root path.', 'logiq')
+                ));
+                return;
+            }
+        }
+
+        // Verify file exists
+        if (!file_exists($file)) {
+            wp_send_json_error(array(
+                'message' => sprintf(__('File not found: %s', 'logiq'), $file)
+            ));
+            return;
+        }
+
+        // Check if file is within allowed directories
+        if (!LogIQ_Security::is_file_in_allowed_directory($file)) {
+            wp_send_json_error(array(
+                'message' => __('Access to this file is not allowed for security reasons.', 'logiq')
+            ));
+            return;
+        }
+
+        // Get editor URL using the helper function
+        $editor_url = logiq_construct_editor_url($file, $line);
+        $editor_info = logiq_get_editor_info();
+
+        // Log the attempt for debugging
+        error_log(sprintf(
+            'LogIQ: Attempting to open file in editor. File: %s, Line: %d, Editor URL: %s',
+            $file,
+            $line,
+            $editor_url
+        ));
+
+        wp_send_json_success(array(
+            'editor_url' => $editor_url,
+            'editor_info' => $editor_info,
+            'debug' => array(
+                'file' => $file,
+                'line' => $line,
+                'os' => PHP_OS,
+                'abspath' => defined('ABSPATH') ? ABSPATH : 'undefined'
+            )
+        ));
     }
 } 
