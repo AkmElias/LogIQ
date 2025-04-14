@@ -144,4 +144,110 @@ class LogIQ_Security {
         // Default to 'all' if no valid level found
         return 'all';
     }
+
+    /**
+     * Sanitize file path
+     *
+     * @param string $path The file path to sanitize
+     * @return string Sanitized path
+     */
+    public static function sanitize_file_path($path) {
+        // Remove any directory traversal attempts
+        $path = str_replace(array('../', '..\\'), '', $path);
+        
+        // Remove any null bytes
+        $path = str_replace("\0", '', $path);
+        
+        // Remove any control characters
+        $path = preg_replace('/[\x00-\x1F\x7F]/', '', $path);
+        
+        return $path;
+    }
+
+    /**
+     * Sanitize and validate page number
+     *
+     * @param mixed $page The page number to sanitize
+     * @return int Sanitized page number
+     */
+    public static function sanitize_page_number($page) {
+        $page = absint($page);
+        return max(1, $page); // Ensure page is at least 1
+    }
+
+    /**
+     * Sanitize log file name
+     *
+     * @param string $filename The log file name to sanitize
+     * @return string Sanitized filename
+     */
+    public static function sanitize_log_filename($filename) {
+        // Remove any directory traversal attempts
+        $filename = self::sanitize_file_path($filename);
+        
+        // Only allow alphanumeric, dash, underscore, and dot
+        $filename = preg_replace('/[^a-zA-Z0-9\-_\.]/', '', $filename);
+        
+        // Ensure it ends with .log
+        if (!preg_match('/\.log$/', $filename)) {
+            $filename .= '.log';
+        }
+        
+        return $filename;
+    }
+
+    /**
+     * Verify file is within allowed directories
+     *
+     * @param string $file_path The file path to verify
+     * @return bool True if file is in allowed directory
+     */
+    public static function is_file_in_allowed_directory($file_path) {
+        $allowed_dirs = array(
+            WP_CONTENT_DIR,
+            dirname(WP_CONTENT_DIR) . '/logs'
+        );
+        
+        $file_path = realpath($file_path);
+        if ($file_path === false) {
+            return false;
+        }
+        
+        foreach ($allowed_dirs as $dir) {
+            if (strpos($file_path, realpath($dir)) === 0) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Generate nonce for AJAX requests
+     *
+     * @return string The nonce
+     */
+    public static function generate_ajax_nonce() {
+        return wp_create_nonce('logiq_admin_nonce');
+    }
+
+    /**
+     * Verify AJAX request
+     *
+     * @param string $action The action to verify
+     * @return bool True if verified
+     */
+    public static function verify_ajax_request($action) {
+        if (!check_ajax_referer('logiq_admin_nonce', 'nonce', false)) {
+            wp_send_json_error(__('Invalid security token.', 'logiq'));
+            return false;
+        }
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('Insufficient permissions.', 'logiq'));
+            return false;
+        }
+        
+        return true;
+    }
 } 

@@ -27,18 +27,34 @@ class LogIQ_Ajax {
      * Get logs via AJAX
      */
     public function get_logs() {
-        // Verify user capabilities and nonce
-        LogIQ_Security::verify_admin_ajax();
+        // test array logs
+        // $data = array(
+        //     'action' => 'get_logs',
+        //     'user_id' => get_current_user_id(),
+        //     'timestamp' => current_time('mysql')
+        // );
+        // error_log('LogIQ Debug - Data: ' . print_r($data, true));
+
+        // Verify AJAX request
+        if (!LogIQ_Security::verify_ajax_request('get_logs')) {
+            return;
+        }
         
+        // Get and sanitize log file
         $log_file = logiq_get_log_file();
+        if (!$log_file || !LogIQ_Security::is_file_in_allowed_directory($log_file)) {
+            wp_send_json_error(__('Invalid log file.', 'logiq'));
+            return;
+        }
         
-        $page = isset($_POST['page']) ? absint($_POST['page']) : 1;
+        // Sanitize input
+        $page = LogIQ_Security::sanitize_page_number(isset($_POST['page']) ? $_POST['page'] : 1);
         $level = isset($_POST['level']) ? LogIQ_Security::sanitize_log_level($_POST['level']) : 'all';
         $per_page = 100; // Show more logs per page
         
         if (!file_exists($log_file)) {
             wp_send_json_success(array(
-                'html' => '<p class="description">' . __('No logs found.', 'logiq') . '</p>',
+                'html' => '<p class="description">' . esc_html__('No logs found.', 'logiq') . '</p>',
                 'pagination' => '',
                 'counts' => array_fill_keys(['all', 'fatal', 'error', 'warning', 'deprecated', 'info', 'debug'], 0)
             ));
@@ -47,6 +63,11 @@ class LogIQ_Ajax {
 
         // Read logs
         $logs = file_get_contents($log_file);
+        if ($logs === false) {
+            wp_send_json_error(__('Could not read log file.', 'logiq'));
+            return;
+        }
+
         $log_entries = array_filter(explode(PHP_EOL, $logs));
         $total_raw_entries = count($log_entries);
         
@@ -100,7 +121,7 @@ class LogIQ_Ajax {
         }
 
         if (empty($output)) {
-            $output = '<p class="description">' . __('No logs found.', 'logiq') . '</p>';
+            $output = '<p class="description">' . esc_html__('No logs found.', 'logiq') . '</p>';
         }
 
         // Only generate pagination if there are multiple pages
@@ -119,9 +140,9 @@ class LogIQ_Ajax {
                 'current_page' => $page,
                 'entries_per_page' => $per_page,
                 'total_pages' => $total_pages,
-                'log_file' => basename($log_file),
-                'log_file_size' => filesize($log_file),
-                'log_file_modified' => date('Y-m-d H:i:s', filemtime($log_file))
+                'log_file' => esc_html(basename($log_file)),
+                'log_file_size' => esc_html(filesize($log_file)),
+                'log_file_modified' => esc_html(date('Y-m-d H:i:s', filemtime($log_file)))
             )
         ));
     }
