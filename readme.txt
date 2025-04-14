@@ -1,114 +1,115 @@
-=== LogIQ - Intelligent Debug Logging ===
-Contributors: akmelias
-Tags: debug, logging, development, error logging, debugging
+=== LogIQ - WordPress Debug Log Viewer ===
+Contributors: yourname
+Tags: debug, log viewer, debugging, development, error log, log management
 Requires at least: 5.8
-Tested up to: 6.8
+Tested up to: 6.4
 Requires PHP: 7.4
 Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Intelligent debugging and structured logging for WordPress developers with an elegant interface and powerful features.
+A powerful and user-friendly debug log viewer for WordPress with editor integration. Monitor, analyze, and troubleshoot your WordPress site effectively.
 
 == Description ==
 
-LogIQ provides developers with a powerful, user-friendly logging system for WordPress. Track errors, warnings, deprecated notices, and debug information with ease.
+LogIQ is a powerful debug log viewer that makes WordPress debugging easier and more efficient. With its intuitive interface and smart features, you can quickly identify and resolve issues in your WordPress site.
 
-= Features =
+= Key Features =
 
-* Beautiful, tabbed interface for different log types
-* Real-time log filtering and pagination
-* Structured JSON logging for all data types
-* Stack traces for errors and exceptions
-* Color-coded log levels
-* AJAX-powered refresh and clear functionality
-* Secure logging with proper sanitization
-* Rate limiting to prevent log flooding
-* Automatic log rotation
-* Translation-ready
+* **Real-time Log Monitoring**: View WordPress debug logs directly from your admin dashboard
+* **Smart Log Parsing**: Automatically categorizes logs into different levels (Fatal, Error, Warning, Notice, Deprecated, Info, Debug)
+* **Advanced Filtering**: Filter logs by level to focus on specific types of issues
+* **Clickable File Links**: Click on file paths in log entries to open them directly in your code editor
+* **Editor Integration**: 
+    * Supports Visual Studio Code
+    * Supports Sublime Text
+    * Supports PhpStorm
+    * Falls back to file:// protocol if no supported editor is found
+* **Clean Interface**: Modern, responsive design with color-coded log levels
+* **Pagination**: Navigate through large log files with ease
+* **Security**: Built with WordPress security best practices
 
-= Log Types =
+= Editor Integration =
 
-* Fatal Errors
-* Regular Errors
-* Warnings
-* Deprecated Notices
-* Info Messages
-* Debug Data
+LogIQ makes debugging easier by providing clickable file links in your log entries. When you click a file link:
 
-= Developer Friendly =
+1. The file opens in your default code editor
+2. The cursor moves to the specific line mentioned in the log
+3. Supported editors (VS Code, Sublime Text, PhpStorm) open directly to the relevant line
+4. No configuration needed - works automatically with your installed editor
 
-```php
-// Log any type of data
-logiq_log($data, LOGIQ_INFO, 'context');
+= Requirements =
 
-// Log errors with stack traces
-logiq_log_error('Error message');
-
-// Log exceptions
-try {
-    // Your code
-} catch (Exception $e) {
-    logiq_log_exception($e);
-}
-```
+* WordPress 5.8 or higher
+* PHP 7.4 or higher
+* WP_DEBUG and WP_DEBUG_LOG must be enabled in wp-config.php
 
 == Installation ==
 
 1. Upload the `logiq` folder to the `/wp-content/plugins/` directory
 2. Activate the plugin through the 'Plugins' menu in WordPress
-3. Go to Tools > LogIQ Debug to view and manage logs
+3. Go to Tools > LogIQ to start viewing your debug logs
+
+== Usage ==
+
+= Viewing Logs =
+1. Navigate to Tools > LogIQ in your WordPress admin
+2. Use the filter buttons to show specific log levels
+3. Click the refresh button to see new logs
+4. Use pagination to navigate through older logs
+
+= Using File Links =
+1. Each log entry that includes a file reference will show a clickable link
+2. Click the link to open the file in your default code editor
+3. The file will open at the specific line number mentioned in the log
+4. Supported editors will open directly to the relevant line
+
+= Editor Configuration =
+The plugin automatically detects installed editors in the following order:
+1. Visual Studio Code
+2. Sublime Text
+3. PhpStorm
+4. System default text editor
+
+No additional configuration is needed - the plugin will automatically use your installed editor.
 
 == Frequently Asked Questions ==
 
-= Where are the logs stored? =
+= Which code editors are supported? =
 
-Logs are stored in `/wp-content/logiq-logs/debug.log` with proper security measures to prevent direct access.
+LogIQ supports Visual Studio Code, Sublime Text, and PhpStorm. If none of these are installed, it will fall back to your system's default text editor.
 
-= How do I enable/disable logging? =
+= Do I need to configure my editor? =
 
-Go to Tools > LogIQ Debug and use the toggle switch at the top of the page.
+No configuration is needed. LogIQ automatically detects your installed editors and uses the appropriate protocol to open files.
 
-= Is it safe to use in production? =
+= What if I don't have any supported editors installed? =
 
-Yes, LogIQ implements several security measures including:
-* Rate limiting
-* Data sanitization
-* Access control
-* Secure file storage
-* Log rotation
+The plugin will fall back to using the file:// protocol, which will open the file in your system's default text editor.
+
+= How does the editor integration work? =
+
+When you click a file link in a log entry, LogIQ detects your installed editors and constructs the appropriate URL to open the file. For supported editors, it will open directly to the specific line number mentioned in the log.
 
 == Screenshots ==
 
-1. Main logging interface with tabbed navigation
-2. Error log display with stack traces
-3. Settings panel
-4. Real-time log filtering
+1. Main log viewer interface with color-coded log levels
+2. Log filtering in action
+3. Clickable file links in log entries
+4. Editor integration demonstration
 
 == Changelog ==
 
-= 1.0.0 - 2025-04-13 =
+= 1.0.0 =
 * Initial release
-* Added beautiful tabbed interface for different log types
-* Added real-time AJAX-powered log viewer
-* Added color-coded log levels (Fatal, Error, Warning, Info, Debug, Deprecated)
-* Added stack traces for errors and exceptions
-* Added JSON structured logging
-* Added context tracking with file and line information
-* Added user action tracking
-* Implemented rate limiting to prevent log flooding
-* Added secure log file storage with .htaccess protection
-* Added automatic log rotation
-* Added log filtering by type
-* Added pagination for large log files
-* Added AJAX-powered refresh and clear functionality
-* Added full internationalization support
-* Added developer API with hooks and filters
-* Implemented security features (XSS prevention, data sanitization)
-* Added responsive admin interface
-* Added documentation and code examples
+* Real-time log viewing with automatic updates
+* Smart log parsing and categorization
+* Advanced filtering by log level
+* Editor integration with clickable file links
+* Support for VS Code, Sublime Text, and PhpStorm
+* Security enhancements and responsive design
 
 == Upgrade Notice ==
 
 = 1.0.0 =
-Initial release of LogIQ with comprehensive logging features, beautiful interface, and robust security measures. 
+Initial release with editor integration and clickable file links. 
