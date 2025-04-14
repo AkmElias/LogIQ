@@ -31,14 +31,12 @@ class LogIQ_Ajax {
         LogIQ_Security::verify_admin_ajax();
         
         $log_file = logiq_get_log_file();
-        error_log('LogIQ Debug - Attempting to read log file: ' . $log_file);
         
         $page = isset($_POST['page']) ? absint($_POST['page']) : 1;
         $level = isset($_POST['level']) ? LogIQ_Security::sanitize_log_level($_POST['level']) : 'all';
-        $per_page = 10; // Increased to show more logs per page
+        $per_page = 100; // Show more logs per page
         
         if (!file_exists($log_file)) {
-            error_log('LogIQ Debug - Log file not found: ' . $log_file);
             wp_send_json_success(array(
                 'html' => '<p class="description">' . __('No logs found.', 'logiq') . '</p>',
                 'pagination' => '',
@@ -48,26 +46,18 @@ class LogIQ_Ajax {
         }
 
         // Read logs
-        error_log('LogIQ Debug - Reading file contents from: ' . $log_file);
         $logs = file_get_contents($log_file);
         $log_entries = array_filter(explode(PHP_EOL, $logs));
         $total_raw_entries = count($log_entries);
-        error_log('LogIQ Debug - Total raw log entries found: ' . $total_raw_entries);
-        
-        // Log first few entries for debugging
-        for ($i = 0; $i < min(5, count($log_entries)); $i++) {
-            error_log('LogIQ Debug - Sample entry ' . $i . ': ' . $log_entries[$i]);
-        }
         
         $log_entries = array_reverse($log_entries);
         $parsed_entries = [];
         $debug_counts = array_fill_keys(['all', 'fatal', 'error', 'warning', 'notice', 'deprecated', 'info', 'debug'], 0);
 
         // Parse all entries
-        foreach ($log_entries as $index => $entry) {
+        foreach ($log_entries as $entry) {
             $parsed = $this->parse_log_entry($entry);
             if ($parsed === null) {
-                error_log('LogIQ Debug - Failed to parse entry ' . $index . ': ' . substr($entry, 0, 100));
                 continue;
             }
 
@@ -81,25 +71,14 @@ class LogIQ_Ajax {
                     break; // Each entry should only count for one level
                 }
             }
-
-            // Log every 100th entry for debugging
-            if ($index % 100 === 0) {
-                error_log('LogIQ Debug - Processing entry ' . $index . ' Level: ' . $parsed['level']);
-            }
         }
-
-        error_log('LogIQ Debug - Total parsed entries: ' . count($parsed_entries));
-        error_log('LogIQ Debug - Counts by level: ' . print_r($debug_counts, true));
 
         // Filter by requested level if not 'all'
         if ($level !== 'all') {
             $filtered_entries = array_filter($parsed_entries, function($entry) use ($level) {
-                $matches = $this->entry_matches_level($entry, $level);
-                error_log('LogIQ Debug - Checking entry level match: ' . $entry['level'] . ' against ' . $level . ' = ' . ($matches ? 'true' : 'false'));
-                return $matches;
+                return $this->entry_matches_level($entry, $level);
             });
             $parsed_entries = array_values($filtered_entries);
-            error_log('LogIQ Debug - Filtered entries for level ' . $level . ': ' . count($parsed_entries));
         }
 
         // Calculate pagination
@@ -109,7 +88,6 @@ class LogIQ_Ajax {
         
         // Slice the array for current page
         $current_page_entries = array_slice($parsed_entries, $offset, $per_page);
-        error_log('LogIQ Debug - Current page entries: ' . count($current_page_entries));
 
         $output = '';
         $pagination = '';
@@ -142,7 +120,6 @@ class LogIQ_Ajax {
                 'entries_per_page' => $per_page,
                 'total_pages' => $total_pages,
                 'log_file' => basename($log_file),
-                'log_file_full_path' => $log_file,
                 'log_file_size' => filesize($log_file),
                 'log_file_modified' => date('Y-m-d H:i:s', filemtime($log_file))
             )

@@ -77,8 +77,7 @@ function logiq_get_log_file() {
         if (is_string(WP_DEBUG_LOG)) {
             return WP_DEBUG_LOG;
         } elseif (WP_DEBUG_LOG === true) {
-            $default_log = WP_CONTENT_DIR . '/debug.log';
-            return $default_log;
+            return WP_CONTENT_DIR . '/debug.log';
         }
     }
 
@@ -95,9 +94,7 @@ function logiq_get_log_file() {
         usort($logs, function($a, $b) {
             return filemtime($b) - filemtime($a);
         });
-        
-        $latest_log = $logs[0];
-        return $latest_log;
+        return $logs[0];
     }
 
     return null;
