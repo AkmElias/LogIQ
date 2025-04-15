@@ -187,4 +187,91 @@ jQuery(document).ready(function($) {
             }
         });
     }
+
+    // Debug Settings Handler
+    (function($) {
+        'use strict';
+
+        // Load initial settings
+        function loadDebugSettings() {
+            $.ajax({
+                url: logiq_ajax.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'logiq_get_debug_settings',
+                    _ajax_nonce: logiq_ajax.nonce
+                },
+                success: function(response) {
+                    if (response.success && response.data.settings) {
+                        response.data.settings.forEach(function(setting) {
+                            $('input[name="' + setting.name + '"]').prop('checked', setting.value);
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Failed to load debug settings:', error);
+                }
+            });
+        }
+
+        // Save all settings
+        function saveDebugSettings() {
+            var settings = [];
+            $('.logiq-debug-setting').each(function() {
+                settings.push({
+                    name: $(this).attr('name'),
+                    value: $(this).is(':checked')
+                });
+            });
+
+            $.ajax({
+                url: logiq_ajax.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'logiq_update_debug_settings',
+                    _ajax_nonce: logiq_ajax.nonce,
+                    settings: JSON.stringify(settings)
+                },
+                beforeSend: function() {
+                    $('#logiq-save-debug-settings').prop('disabled', true)
+                        .text(logiq_ajax.strings.saving);
+                },
+                success: function(response) {
+                    if (response.success) {
+                        var $notice = $('<div class="notice notice-success is-dismissible"><p>' + 
+                            response.data.message + '</p></div>');
+                        $('.wrap h1').after($notice);
+                    } else {
+                        var $notice = $('<div class="notice notice-error is-dismissible"><p>' + 
+                            (response.data || 'Failed to update settings.') + '</p></div>');
+                        $('.wrap h1').after($notice);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    var $notice = $('<div class="notice notice-error is-dismissible"><p>Error: ' + 
+                        (error || 'Failed to update settings.') + '</p></div>');
+                    $('.wrap h1').after($notice);
+                    console.error('Failed to save settings:', error);
+                },
+                complete: function() {
+                    $('#logiq-save-debug-settings').prop('disabled', false)
+                        .text(logiq_ajax.strings.save_changes);
+                }
+            });
+        }
+
+        // Initialize
+        $(document).ready(function() {
+            if ($('.logiq-settings-section').length) {
+                loadDebugSettings();
+
+                // Handle save button click
+                $('#logiq-save-debug-settings').on('click', function(e) {
+                    e.preventDefault();
+                    saveDebugSettings();
+                });
+            }
+        });
+
+    })(jQuery);
 }); 

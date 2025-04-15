@@ -28,6 +28,8 @@ class LogIQ_Admin {
         add_action('wp_ajax_logiq_clear_logs', array($this, 'ajax_clear_logs'));
         add_action('wp_ajax_logiq_toggle_debug', array($this, 'ajax_toggle_debug'));
         add_action('wp_ajax_logiq_open_in_editor', array($this, 'open_in_editor'));
+        add_action('wp_ajax_logiq_update_debug_settings', array($this, 'ajax_update_debug_settings'));
+        add_action('wp_ajax_logiq_get_debug_settings', array($this, 'ajax_get_debug_settings'));
     }
 
     /**
@@ -69,27 +71,37 @@ class LogIQ_Admin {
 
             <div class="logiq-settings-section">
                 <h2><?php echo esc_html__('Debug Settings', 'logiq'); ?></h2>
-                <form method="post" action="options.php">
-                    <?php settings_fields('logiq_options'); ?>
-                    <table class="form-table">
+                
+                <table class="form-table" role="presentation">
+                    <?php
+                    $constants = $this->get_debug_constants();
+                    foreach ($constants as $constant => $data) {
+                        ?>
                         <tr>
-                            <th scope="row"><?php echo esc_html__('Debug Logging', 'logiq'); ?></th>
+                            <th scope="row"><?php echo esc_html($data['name']); ?></th>
                             <td>
                                 <label>
                                     <input type="checkbox" 
-                                           name="logiq_debug_enabled" 
-                                           value="1" 
-                                           <?php checked($debug_enabled); ?>>
-                                    <?php echo esc_html__('Enable WordPress debug logging', 'logiq'); ?>
+                                           name="<?php echo esc_attr($data['name']); ?>" 
+                                           class="logiq-debug-setting"
+                                           value="1">
+                                    <?php echo esc_html($data['info']); ?>
                                 </label>
-                                <p class="description">
-                                    <?php echo esc_html__('When enabled, WordPress will log debug information to the debug.log file.', 'logiq'); ?>
-                                </p>
+                                <?php if (isset($data['description'])): ?>
+                                    <p class="description"><?php echo esc_html($data['description']); ?></p>
+                                <?php endif; ?>
                             </td>
                         </tr>
-                    </table>
-                    <?php submit_button(); ?>
-                </form>
+                        <?php
+                    }
+                    ?>
+                </table>
+
+                <p class="submit">
+                    <button type="button" id="logiq-save-debug-settings" class="button button-primary">
+                        <?php echo esc_html__('Save Changes', 'logiq'); ?>
+                    </button>
+                </p>
             </div>
 
             <div class="logiq-logs-section">
@@ -198,14 +210,6 @@ class LogIQ_Admin {
      * Enqueue admin scripts and styles
      */
     public function enqueue_admin_assets() {
-        $data = array(
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('logiq_ajax'),
-            'is_windows' => PHP_OS === 'WINNT',
-        );
-
-        error_log(print_r($data, true));
-
         if (!$this->is_logiq_page()) {
             return;
         }
@@ -229,6 +233,12 @@ class LogIQ_Admin {
         wp_localize_script('logiq-admin', 'logiq_ajax', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('logiq_ajax'),
+            'strings' => array(
+                'saving' => __('Saving...', 'logiq'),
+                'save_changes' => __('Save Changes', 'logiq'),
+                'error' => __('Error', 'logiq'),
+                'success' => __('Success', 'logiq')
+            ),
             'editor_protocol' => $editor_info['protocol'],
             'is_vscode' => $editor_info['is_vscode'],
             'is_windows' => PHP_OS === 'WINNT',
@@ -707,5 +717,264 @@ class LogIQ_Admin {
                 'abspath' => defined('ABSPATH') ? esc_html(ABSPATH) : 'undefined'
             )
         ));
+    }
+
+    /**
+     * Get debug constants
+     */
+    private function get_debug_constants() {
+        return array(
+            'WP_DEBUG' => array(
+                'name' => 'WP_DEBUG',
+                'info' => __('Enable WordPress debug logging', 'logiq'),
+                'description' => __('When enabled, WordPress will log debug information to the debug.log file.', 'logiq'),
+                'value' => true
+            ),
+            'WP_DEBUG_LOG' => array(
+                'name' => 'WP_DEBUG_LOG',
+                'info' => __('Log to debug.log file', 'logiq'),
+                'value' => true
+            ),
+            'WP_DEBUG_DISPLAY' => array(
+                'name' => 'WP_DEBUG_DISPLAY',
+                'info' => __('Display errors and warnings', 'logiq'),
+                'description' => __('Show debug messages in the HTML of your pages.', 'logiq'),
+                'value' => false
+            ),
+            'SCRIPT_DEBUG' => array(
+                'name' => 'SCRIPT_DEBUG',
+                'info' => __('Use development versions of assets', 'logiq'),
+                'description' => __('Load unminified versions of CSS and JavaScript files.', 'logiq'),
+                'value' => false
+            )
+        );
+    }
+
+    /**
+     * AJAX handler for updating debug settings
+     */
+    public function ajax_update_debug_settings() {
+        try {
+            // Add debug logging
+            error_log('LogIQ Debug - Starting debug settings update');
+            
+            // Check nonce and capabilities
+            if (!check_ajax_referer('logiq_ajax', '_ajax_nonce', false)) {
+                error_log('LogIQ Debug - Nonce verification failed');
+                wp_send_json_error('Invalid security token.');
+                return;
+            }
+
+            if (!current_user_can('manage_options')) {
+                error_log('LogIQ Debug - Permission check failed');
+                wp_send_json_error('Permission denied.');
+                return;
+            }
+
+            // Get and validate settings
+            $raw_settings = isset($_POST['settings']) ? $_POST['settings'] : '';
+            error_log('LogIQ Debug - Raw settings received: ' . print_r($raw_settings, true));
+            
+            if (empty($raw_settings)) {
+                error_log('LogIQ Debug - No settings provided');
+                wp_send_json_error('No settings provided.');
+                return;
+            }
+
+            $settings = json_decode(stripslashes($raw_settings), true);
+            error_log('LogIQ Debug - Decoded settings: ' . print_r($settings, true));
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                error_log('LogIQ Debug - JSON decode error: ' . json_last_error_msg());
+                wp_send_json_error('Invalid settings format.');
+                return;
+            }
+
+            // Get config path
+            $config_path = ABSPATH . 'wp-config.php';
+            if (!file_exists($config_path)) {
+                $config_path = dirname(ABSPATH) . '/wp-config.php';
+            }
+
+            error_log('LogIQ Debug - Config path: ' . $config_path);
+            error_log('LogIQ Debug - Config exists: ' . (file_exists($config_path) ? 'yes' : 'no'));
+            error_log('LogIQ Debug - Config writable: ' . (is_writable($config_path) ? 'yes' : 'no'));
+
+            if (!file_exists($config_path) || !is_writable($config_path)) {
+                error_log('LogIQ Debug - Config file not found or not writable');
+                wp_send_json_error('WordPress configuration file not found or not writable.');
+                return;
+            }
+
+            // Debug logging
+            error_log('LogIQ Debug - Creating transformer instance');
+            
+            $transformer = new LogIQ_Config_Transformer($config_path);
+            $updated = 0;
+            $debug_info = array();
+
+            foreach ($settings as $setting) {
+                if (empty($setting['name'])) {
+                    continue;
+                }
+
+                $name = sanitize_text_field($setting['name']);
+                $value = rest_sanitize_boolean($setting['value']);
+
+                error_log("LogIQ Debug - Processing setting: {$name} = " . var_export($value, true));
+
+                // Get value before update
+                $old_value = $transformer->get_value($name);
+                error_log("LogIQ Debug - Current value for {$name}: " . var_export($old_value, true));
+                
+                try {
+                    // Update the value
+                    if ($transformer->update($name, $value)) {
+                        $updated++;
+                        $debug_info[$name] = array(
+                            'old_value' => $old_value,
+                            'new_value' => $value,
+                            'success' => true
+                        );
+                        error_log("LogIQ Debug - Successfully updated {$name}");
+                    } else {
+                        $debug_info[$name] = array(
+                            'old_value' => $old_value,
+                            'new_value' => $value,
+                            'success' => false
+                        );
+                        error_log("LogIQ Debug - Failed to update {$name}");
+                    }
+                } catch (Exception $e) {
+                    error_log("LogIQ Debug - Error updating {$name}: " . $e->getMessage());
+                    $debug_info[$name] = array(
+                        'old_value' => $old_value,
+                        'new_value' => $value,
+                        'success' => false,
+                        'error' => $e->getMessage()
+                    );
+                }
+            }
+
+            error_log('LogIQ Debug - Update complete. Updated count: ' . $updated);
+            error_log('LogIQ Debug - Debug info: ' . print_r($debug_info, true));
+
+            if ($updated > 0) {
+                wp_send_json_success(array(
+                    'message' => sprintf(
+                        _n(
+                            '%d setting updated successfully.',
+                            '%d settings updated successfully.',
+                            $updated,
+                            'logiq'
+                        ),
+                        $updated
+                    ),
+                    'debug_info' => $debug_info
+                ));
+            } else {
+                wp_send_json_error(array(
+                    'message' => 'No settings were updated.',
+                    'debug_info' => $debug_info
+                ));
+            }
+
+        } catch (Exception $e) {
+            error_log('LogIQ Debug - Fatal error: ' . $e->getMessage());
+            error_log('LogIQ Debug - Stack trace: ' . $e->getTraceAsString());
+            wp_send_json_error(array(
+                'message' => $e->getMessage(),
+                'debug_info' => isset($debug_info) ? $debug_info : array()
+            ));
+        }
+    }
+
+    /**
+     * Get current debug settings
+     */
+    public function ajax_get_debug_settings() {
+        try {
+            // Check nonce first
+            if (!check_ajax_referer('logiq_ajax', '_ajax_nonce', false)) {
+                wp_send_json_error(array(
+                    'message' => 'Invalid security token',
+                    'debug' => array(
+                        'nonce_received' => isset($_POST['_ajax_nonce']) ? sanitize_text_field($_POST['_ajax_nonce']) : 'none',
+                        'nonce_expected' => wp_create_nonce('logiq_ajax')
+                    )
+                ));
+                return;
+            }
+
+            // Check capabilities
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error(array(
+                    'message' => __('Permission denied.', 'logiq')
+                ));
+                return;
+            }
+
+            // Get config path
+            $config_path = ABSPATH . 'wp-config.php';
+            if (!file_exists($config_path)) {
+                $config_path = dirname(ABSPATH) . '/wp-config.php';
+            }
+
+            if (!file_exists($config_path)) {
+                wp_send_json_error(array(
+                    'message' => 'WordPress configuration file not found',
+                    'debug' => array(
+                        'paths_checked' => array(
+                            ABSPATH . 'wp-config.php',
+                            dirname(ABSPATH) . '/wp-config.php'
+                        )
+                    )
+                ));
+                return;
+            }
+
+            if (!is_readable($config_path)) {
+                wp_send_json_error(array(
+                    'message' => 'WordPress configuration file is not readable',
+                    'debug' => array(
+                        'path' => $config_path,
+                        'permissions' => decoct(fileperms($config_path) & 0777)
+                    )
+                ));
+                return;
+            }
+
+            $transformer = new LogIQ_Config_Transformer($config_path);
+            $constants = $this->get_debug_constants();
+            $settings = array();
+
+            foreach ($constants as $key => $constant) {
+                $value = $transformer->exists($key) ? $transformer->get_value($key) : $constant['value'];
+                $settings[] = array(
+                    'name' => $key,
+                    'value' => $value === 'true' || $value === true,
+                    'info' => $constant['info']
+                );
+            }
+
+            wp_send_json_success(array(
+                'settings' => $settings,
+                'debug' => array(
+                    'config_path' => $config_path,
+                    'constants_found' => array_keys($constants),
+                    'transformer_loaded' => true
+                )
+            ));
+
+        } catch (Exception $e) {
+            wp_send_json_error(array(
+                'message' => $e->getMessage(),
+                'debug' => array(
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString()
+                )
+            ));
+        }
     }
 } 

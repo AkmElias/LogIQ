@@ -25,6 +25,7 @@ define('LOGIQ_PLUGIN_BASENAME', plugin_basename(__FILE__));
 
 // Include required files
 require_once LOGIQ_PLUGIN_DIR . 'includes/functions-logiq.php';
+require_once LOGIQ_PLUGIN_DIR . 'includes/class-logiq-config-transformer.php';
 require_once LOGIQ_PLUGIN_DIR . 'includes/class-logiq-admin.php';
 require_once LOGIQ_PLUGIN_DIR . 'includes/class-logiq-security.php';
 
@@ -80,6 +81,38 @@ class LogIQ {
                 '<p>' . implode('<br>', $issues) . '</p>' .
                 '<p><a href="' . admin_url('plugins.php') . '">' . __('Return to plugins page', 'logiq') . '</a></p>'
             );
+        }
+
+        // Set default debug settings
+        try {
+            error_log('LogIQ Debug - Setting default debug settings on activation');
+            
+            $config_path = ABSPATH . 'wp-config.php';
+            if (!file_exists($config_path)) {
+                $config_path = dirname(ABSPATH) . '/wp-config.php';
+            }
+
+            if (!file_exists($config_path)) {
+                error_log('LogIQ Debug - wp-config.php not found');
+                return;
+            }
+
+            $transformer = new LogIQ_Config_Transformer($config_path);
+
+            // Set WP_DEBUG if not defined
+            if (!$transformer->exists('WP_DEBUG')) {
+                error_log('LogIQ Debug - Setting default WP_DEBUG to true');
+                $transformer->update('WP_DEBUG', true);
+            }
+
+            // Set WP_DEBUG_LOG if not defined
+            if (!$transformer->exists('WP_DEBUG_LOG')) {
+                error_log('LogIQ Debug - Setting default WP_DEBUG_LOG to true');
+                $transformer->update('WP_DEBUG_LOG', true);
+            }
+
+        } catch (Exception $e) {
+            error_log('LogIQ Debug - Error setting default debug settings: ' . $e->getMessage());
         }
 
         // Register settings
