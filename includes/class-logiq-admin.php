@@ -477,10 +477,24 @@ class LogIQ_Admin {
             $parsed['timestamp'] = $matches[1];
             $message = $matches[2];
 
+            // Handle PHP Parse Errors
+            if (preg_match('/PHP Parse error:\s+(.+?)\s+in\s+(.+?)\s+on\s+line\s+(\d+)/', $message, $parse_error_matches)) {
+                $parsed['level'] = 'error';
+                $parsed['context'] = 'php_parse';
+                $parsed['file'] = str_replace(ABSPATH, '', $parse_error_matches[2]);
+                $parsed['line'] = intval($parse_error_matches[3]);
+                $parsed['data'] = 'PHP Parse Error: ' . $parse_error_matches[1];
+            }
             // Handle LogIQ Debug messages
-            if (strpos($message, 'LogIQ Debug - Data:') !== false) {
+            else if (strpos($message, 'LogIQ Debug - Data:') !== false) {
                 $parsed['level'] = 'debug';
                 $parsed['context'] = 'logiq';
+            }
+            // Handle array debug data
+            else if (preg_match('/^Array\s*\(/s', $message) || strpos($message, 'ajax_url') !== false) {
+                $parsed['level'] = 'debug';
+                $parsed['context'] = 'array_debug';
+                $parsed['data'] = $message;
             }
             // PHP Notices
             else if (strpos($message, 'PHP Notice:') !== false || strpos($message, '_load_textdomain_just_in_time') !== false) {
@@ -508,10 +522,8 @@ class LogIQ_Admin {
                 $parsed['context'] = 'php_error';
             }
 
-            $parsed['data'] = $message;
-
-            // Extract file and line information
-            if (preg_match('/in (.+?) on line (\d+)/', $message, $file_matches)) {
+            // Extract file and line information if not already set
+            if (empty($parsed['file']) && preg_match('/in (.+?) on line (\d+)/', $message, $file_matches)) {
                 $parsed['file'] = str_replace(ABSPATH, '', $file_matches[1]);
                 $parsed['line'] = intval($file_matches[2]);
             }
