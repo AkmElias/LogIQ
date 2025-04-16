@@ -278,4 +278,83 @@
     background: #0073aa;
     border-color: #006291;
     color: #fff;
+}
+
+/* Debug Settings Styles */
+.logiq-settings-section {
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    max-width: 800px;
+    margin: 20px 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.logiq-settings-section .form-table {
+    margin: 0;
+}
+
+.logiq-settings-section .form-table th {
+    padding: 20px 10px 20px 0;
+    width: 200px;
+}
+
+.logiq-settings-section .form-table td {
+    padding: 20px 10px;
+    vertical-align: top;
+}
+
+.logiq-settings-section label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.logiq-settings-section .description {
+    color: #666;
+    font-style: normal;
+    margin-top: 4px;
+}
+
+/* Save Button and Loader Styles */
+#logiq-save-debug-settings {
+    margin-top: 20px;
+    padding: 5px 20px;
+    height: auto;
+    position: relative;
+    min-width: 120px;
+}
+
+#logiq-save-debug-settings.saving {
+    color: transparent !important;  /* Hide text while saving */
+}
+
+.logiq-spinner {
+    display: none;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: logiq-spin 0.8s linear infinite;
+}
+
+#logiq-save-debug-settings.saving .logiq-spinner {
+    display: block;
+}
+
+@keyframes logiq-spin {
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+/* Success/Error Notices */
+.notice {
+    margin: 15px 0;
 } 

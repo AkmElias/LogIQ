@@ -754,10 +754,7 @@ class LogIQ_Admin {
      * AJAX handler for updating debug settings
      */
     public function ajax_update_debug_settings() {
-        try {
-            // Add debug logging
-            error_log('LogIQ Debug - Starting debug settings update');
-            
+        try {            
             // Check nonce and capabilities
             if (!check_ajax_referer('logiq_ajax', '_ajax_nonce', false)) {
                 error_log('LogIQ Debug - Nonce verification failed');
@@ -773,7 +770,6 @@ class LogIQ_Admin {
 
             // Get and validate settings
             $raw_settings = isset($_POST['settings']) ? $_POST['settings'] : '';
-            error_log('LogIQ Debug - Raw settings received: ' . print_r($raw_settings, true));
             
             if (empty($raw_settings)) {
                 error_log('LogIQ Debug - No settings provided');
@@ -782,7 +778,7 @@ class LogIQ_Admin {
             }
 
             $settings = json_decode(stripslashes($raw_settings), true);
-            error_log('LogIQ Debug - Decoded settings: ' . print_r($settings, true));
+
             
             if (json_last_error() !== JSON_ERROR_NONE) {
                 error_log('LogIQ Debug - JSON decode error: ' . json_last_error_msg());
@@ -796,18 +792,10 @@ class LogIQ_Admin {
                 $config_path = dirname(ABSPATH) . '/wp-config.php';
             }
 
-            error_log('LogIQ Debug - Config path: ' . $config_path);
-            error_log('LogIQ Debug - Config exists: ' . (file_exists($config_path) ? 'yes' : 'no'));
-            error_log('LogIQ Debug - Config writable: ' . (is_writable($config_path) ? 'yes' : 'no'));
-
             if (!file_exists($config_path) || !is_writable($config_path)) {
-                error_log('LogIQ Debug - Config file not found or not writable');
                 wp_send_json_error('WordPress configuration file not found or not writable.');
                 return;
             }
-
-            // Debug logging
-            error_log('LogIQ Debug - Creating transformer instance');
             
             $transformer = new LogIQ_Config_Transformer($config_path);
             $updated = 0;
@@ -820,12 +808,8 @@ class LogIQ_Admin {
 
                 $name = sanitize_text_field($setting['name']);
                 $value = rest_sanitize_boolean($setting['value']);
-
-                error_log("LogIQ Debug - Processing setting: {$name} = " . var_export($value, true));
-
                 // Get value before update
                 $old_value = $transformer->get_value($name);
-                error_log("LogIQ Debug - Current value for {$name}: " . var_export($old_value, true));
                 
                 try {
                     // Update the value
@@ -836,14 +820,12 @@ class LogIQ_Admin {
                             'new_value' => $value,
                             'success' => true
                         );
-                        error_log("LogIQ Debug - Successfully updated {$name}");
                     } else {
                         $debug_info[$name] = array(
                             'old_value' => $old_value,
                             'new_value' => $value,
                             'success' => false
                         );
-                        error_log("LogIQ Debug - Failed to update {$name}");
                     }
                 } catch (Exception $e) {
                     error_log("LogIQ Debug - Error updating {$name}: " . $e->getMessage());
@@ -856,20 +838,9 @@ class LogIQ_Admin {
                 }
             }
 
-            error_log('LogIQ Debug - Update complete. Updated count: ' . $updated);
-            error_log('LogIQ Debug - Debug info: ' . print_r($debug_info, true));
-
             if ($updated > 0) {
                 wp_send_json_success(array(
-                    'message' => sprintf(
-                        _n(
-                            '%d setting updated successfully.',
-                            '%d settings updated successfully.',
-                            $updated,
-                            'logiq'
-                        ),
-                        $updated
-                    ),
+                    'message' => sprintf('Settings updated successfully.'),
                     'debug_info' => $debug_info
                 ));
             } else {

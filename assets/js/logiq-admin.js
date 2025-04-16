@@ -216,6 +216,13 @@ jQuery(document).ready(function($) {
 
         // Save all settings
         function saveDebugSettings() {
+            var $button = $('#logiq-save-debug-settings');
+            
+            // Don't do anything if already saving
+            if ($button.hasClass('saving')) {
+                return;
+            }
+
             var settings = [];
             $('.logiq-debug-setting').each(function() {
                 settings.push({
@@ -223,6 +230,11 @@ jQuery(document).ready(function($) {
                     value: $(this).is(':checked')
                 });
             });
+
+            // Add spinner to button
+            if (!$button.find('.logiq-spinner').length) {
+                $button.prepend('<span class="logiq-spinner"></span>');
+            }
 
             $.ajax({
                 url: logiq_ajax.ajax_url,
@@ -233,8 +245,8 @@ jQuery(document).ready(function($) {
                     settings: JSON.stringify(settings)
                 },
                 beforeSend: function() {
-                    $('#logiq-save-debug-settings').prop('disabled', true)
-                        .text(logiq_ajax.strings.saving);
+                    $button.addClass('saving')
+                           .prop('disabled', true);
                 },
                 success: function(response) {
                     if (response.success) {
@@ -251,11 +263,10 @@ jQuery(document).ready(function($) {
                     var $notice = $('<div class="notice notice-error is-dismissible"><p>Error: ' + 
                         (error || 'Failed to update settings.') + '</p></div>');
                     $('.wrap h1').after($notice);
-                    console.error('Failed to save settings:', error);
                 },
                 complete: function() {
-                    $('#logiq-save-debug-settings').prop('disabled', false)
-                        .text(logiq_ajax.strings.save_changes);
+                    $button.removeClass('saving')
+                           .prop('disabled', false);
                 }
             });
         }

@@ -67,38 +67,28 @@ class LogIQ_Config_Transformer {
      */
     public function update($name, $value) {
         try {
-            error_log("LogIQ Debug - Starting update for {$name}");
-            
             // Create a new backup before each update
             if (!copy($this->config_path, $this->backup_path)) {
-                error_log("LogIQ Debug - Failed to create backup file");
                 throw new Exception('Failed to create backup file');
             }
             
             $normalized_value = $this->normalize_value($value);
-            error_log("LogIQ Debug - Normalized value: {$normalized_value}");
             
             if ($this->exists($name)) {
-                error_log("LogIQ Debug - Constant {$name} exists, updating");
                 // Update existing constant
                 $pattern = $this->get_define_pattern($name);
                 $replacement = "define('$name', $normalized_value);";
                 $new_content = preg_replace($pattern, $replacement, $this->config_content);
                 
                 if ($new_content === null) {
-                    error_log("LogIQ Debug - preg_replace error: " . preg_last_error());
                     throw new Exception('Regex error while updating constant');
                 }
                 
                 $this->config_content = $new_content;
             } else {
-                error_log("LogIQ Debug - Constant {$name} doesn't exist, adding new");
                 // Find the best place to insert the new constant
                 $insertion_point = $this->find_insertion_point();
                 $new_define = "\ndefine('$name', $normalized_value);";
-                
-                error_log("LogIQ Debug - Insertion point: {$insertion_point}");
-                error_log("LogIQ Debug - New define statement: {$new_define}");
                 
                 $this->config_content = substr_replace(
                     $this->config_content,
@@ -108,15 +98,13 @@ class LogIQ_Config_Transformer {
                 );
             }
 
-            error_log("LogIQ Debug - Attempting to write config file");
+
             $write_result = file_put_contents($this->config_path, $this->config_content);
             
             if ($write_result === false) {
-                error_log("LogIQ Debug - Failed to write config file");
                 throw new Exception('Failed to write config file');
             }
-
-            error_log("LogIQ Debug - Successfully wrote " . $write_result . " bytes");
+            
             return true;
 
         } catch (Exception $e) {
