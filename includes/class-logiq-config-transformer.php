@@ -108,10 +108,8 @@ class LogIQ_Config_Transformer {
             return true;
 
         } catch (Exception $e) {
-            error_log("LogIQ Debug - Error in update: " . $e->getMessage());
             // Restore from backup if something went wrong
             if (file_exists($this->backup_path)) {
-                error_log("LogIQ Debug - Restoring from backup");
                 copy($this->backup_path, $this->config_path);
             }
             throw $e;

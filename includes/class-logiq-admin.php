@@ -37,8 +37,8 @@ class LogIQ_Admin {
      */
     public function add_admin_menu() {
         add_management_page(
-            __('LogIQ Debug', 'logiq'),
-            __('LogIQ Debug', 'logiq'),
+            __('LogIQ Debug', 'LogIQ'),
+            __('LogIQ Debug', 'LogIQ'),
             'manage_options',
             'logiq-debug',
             array($this, 'render_admin_page')
@@ -61,16 +61,16 @@ class LogIQ_Admin {
      */
     public function render_admin_page() {
         if (!current_user_can('manage_options')) {
-            wp_die(__('You do not have sufficient permissions to access this page.', 'logiq'));
+            wp_die(esc_html(__('You do not have sufficient permissions to access this page.', 'LogIQ')));
         }
 
         $debug_enabled = get_option('logiq_debug_enabled', true);
         ?>
         <div class="wrap">
-            <h1><?php echo esc_html__('LogIQ Debug', 'logiq'); ?></h1>
+            <h1><?php echo esc_html__('LogIQ Debug', 'LogIQ'); ?></h1>
 
             <div class="logiq-settings-section">
-                <h2><?php echo esc_html__('Debug Settings', 'logiq'); ?></h2>
+                <h2><?php echo esc_html__('Debug Settings', 'LogIQ'); ?></h2>
                 
                 <table class="form-table" role="presentation">
                     <?php
@@ -99,46 +99,46 @@ class LogIQ_Admin {
 
                 <p class="submit">
                     <button type="button" id="logiq-save-debug-settings" class="button button-primary">
-                        <?php echo esc_html__('Save Changes', 'logiq'); ?>
+                        <?php echo esc_html__('Save Changes', 'LogIQ'); ?>
                     </button>
                 </p>
             </div>
 
             <div class="logiq-logs-section">
-                <h2><?php echo esc_html__('LogIQ Debug Logs', 'logiq'); ?></h2>
+                <h2><?php echo esc_html__('LogIQ Debug Logs', 'LogIQ'); ?></h2>
                 <div class="logiq-actions">
                     <button type="button" id="logiq-refresh-logs" class="button">
-                        <?php echo esc_html__('Refresh Logs', 'logiq'); ?>
+                        <?php echo esc_html__('Refresh Logs', 'LogIQ'); ?>
                     </button>
                     <button type="button" id="logiq-clear-logs" class="button">
-                        <?php echo esc_html__('Clear Logs', 'logiq'); ?>
+                        <?php echo esc_html__('Clear Logs', 'LogIQ'); ?>
                     </button>
                 </div>
 
                 <div class="logiq-filters">
                     <button type="button" class="logiq-level-filter button active" data-level="all">
-                        <?php echo esc_html__('All Logs', 'logiq'); ?> <span class="count">(0)</span>
+                        <?php echo esc_html__('All Logs', 'LogIQ'); ?> <span class="count">(0)</span>
                     </button>
                     <button type="button" class="logiq-level-filter button" data-level="fatal">
-                        <?php echo esc_html__('Fatal', 'logiq'); ?> <span class="count">(0)</span>
+                        <?php echo esc_html__('Fatal', 'LogIQ'); ?> <span class="count">(0)</span>
                     </button>
                     <button type="button" class="logiq-level-filter button" data-level="error">
-                        <?php echo esc_html__('Errors', 'logiq'); ?> <span class="count">(0)</span>
+                        <?php echo esc_html__('Errors', 'LogIQ'); ?> <span class="count">(0)</span>
                     </button>
                     <button type="button" class="logiq-level-filter button" data-level="warning">
-                        <?php echo esc_html__('Warnings', 'logiq'); ?> <span class="count">(0)</span>
+                        <?php echo esc_html__('Warnings', 'LogIQ'); ?> <span class="count">(0)</span>
                     </button>
                     <button type="button" class="logiq-level-filter button" data-level="notice">
-                        <?php echo esc_html__('Notices', 'logiq'); ?> <span class="count">(0)</span>
+                        <?php echo esc_html__('Notices', 'LogIQ'); ?> <span class="count">(0)</span>
                     </button>
                     <button type="button" class="logiq-level-filter button" data-level="info">
-                        <?php echo esc_html__('Info', 'logiq'); ?> <span class="count">(0)</span>
+                        <?php echo esc_html__('Info', 'LogIQ'); ?> <span class="count">(0)</span>
                     </button>
                     <button type="button" class="logiq-level-filter button" data-level="debug">
-                        <?php echo esc_html__('Debug', 'logiq'); ?> <span class="count">(0)</span>
+                        <?php echo esc_html__('Debug', 'LogIQ'); ?> <span class="count">(0)</span>
                     </button>
                     <button type="button" class="logiq-level-filter button" data-level="deprecated">
-                        <?php echo esc_html__('Deprecated', 'logiq'); ?> <span class="count">(0)</span>
+                        <?php echo esc_html__('Deprecated', 'LogIQ'); ?> <span class="count">(0)</span>
                     </button>
                 </div>
 
@@ -155,15 +155,17 @@ class LogIQ_Admin {
      */
     public function handle_debug_toggle() {
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(__('Permission denied.', 'logiq'));
+            wp_send_json_error(__('Permission denied.', 'LogIQ'));
             return;
         }
 
         $debug_enabled = get_option('logiq_debug_enabled', true);
         $config_path = ABSPATH . 'wp-config.php';
 
-        if (!file_exists($config_path) || !is_writable($config_path)) {
-            wp_send_json_error(__('wp-config.php not found or not writable.', 'logiq'));
+        // use wp_filesystem to check if the file exists and is writable
+        $wp_filesystem = new WP_Filesystem_Direct(array());
+        if (!$wp_filesystem->exists($config_path) || !$wp_filesystem->is_writable($config_path)) {
+            wp_send_json_error(__('wp-config.php not found or not writable.', 'LogIQ'));
             return;
         }
 
@@ -194,7 +196,7 @@ class LogIQ_Admin {
         if (file_put_contents($config_path, $config_content)) {
             wp_send_json_success();
         } else {
-            wp_send_json_error(__('Failed to update wp-config.php.', 'logiq'));
+            wp_send_json_error(__('Failed to update wp-config.php.', 'LogIQ'));
         }
     }
 
@@ -234,10 +236,10 @@ class LogIQ_Admin {
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('logiq_ajax'),
             'strings' => array(
-                'saving' => __('Saving...', 'logiq'),
-                'save_changes' => __('Save Changes', 'logiq'),
-                'error' => __('Error', 'logiq'),
-                'success' => __('Success', 'logiq')
+                'saving' => __('Saving...', 'LogIQ'),
+                'save_changes' => __('Save Changes', 'LogIQ'),
+                'error' => __('Error', 'LogIQ'),
+                'success' => __('Success', 'LogIQ')
             ),
             'editor_protocol' => $editor_info['protocol'],
             'is_vscode' => $editor_info['is_vscode'],
@@ -308,20 +310,20 @@ class LogIQ_Admin {
      */
     public function ajax_get_logs() {
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(__('Permission denied.', 'logiq'));
+            wp_send_json_error(__('Permission denied.', 'LogIQ'));
             return;
         }
 
         check_ajax_referer('logiq_ajax');
 
         $page = isset($_POST['page']) ? absint($_POST['page']) : 1;
-        $level = isset($_POST['level']) ? sanitize_text_field($_POST['level']) : 'all';
+        $level = isset($_POST['level']) ? sanitize_text_field(wp_unslash($_POST['level'])) : 'all';
         $per_page = 10;
 
         $log_file = logiq_get_log_file();
         if (!$log_file || !file_exists($log_file)) {
             wp_send_json_success(array(
-                'html' => '<p class="description">' . esc_html__('No logs found.', 'logiq') . '</p>',
+                'html' => '<p class="description">' . esc_html__('No logs found.', 'LogIQ') . '</p>',
                 'pagination' => '',
                 'counts' => array_fill_keys(['all', 'fatal', 'error', 'warning', 'notice', 'deprecated', 'info', 'debug'], 0),
                 'debug_info' => array(
@@ -340,7 +342,7 @@ class LogIQ_Admin {
 
         $logs = file_get_contents($log_file);
         if ($logs === false) {
-            wp_send_json_error(__('Could not read log file.', 'logiq'));
+            wp_send_json_error(__('Could not read log file.', 'LogIQ'));
             return;
         }
 
@@ -398,7 +400,7 @@ class LogIQ_Admin {
         }
 
         if (empty($output)) {
-            $output = '<p class="description">' . esc_html__('No logs found.', 'logiq') . '</p>';
+            $output = '<p class="description">' . esc_html__('No logs found.', 'LogIQ') . '</p>';
         }
 
         // Generate pagination if needed
@@ -418,7 +420,7 @@ class LogIQ_Admin {
                 'total_pages' => $total_pages,
                 'log_file' => basename($log_file),
                 'log_file_size' => filesize($log_file),
-                'log_file_modified' => date('Y-m-d H:i:s', filemtime($log_file))
+                'log_file_modified' => gmdate('Y-m-d H:i:s', filemtime($log_file))
             )
         ));
     }
@@ -428,7 +430,7 @@ class LogIQ_Admin {
      */
     public function ajax_clear_logs() {
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(__('Permission denied.', 'logiq'));
+            wp_send_json_error(__('Permission denied.', 'LogIQ'));
             return;
         }
 
@@ -436,14 +438,14 @@ class LogIQ_Admin {
 
         $log_file = logiq_get_log_file();
         if (!$log_file || !file_exists($log_file)) {
-            wp_send_json_error(__('No log file found.', 'logiq'));
+            wp_send_json_error(__('No log file found.', 'LogIQ'));
             return;
         }
 
         if (file_put_contents($log_file, '') !== false) {
             wp_send_json_success();
         } else {
-            wp_send_json_error(__('Failed to clear log file.', 'logiq'));
+            wp_send_json_error(__('Failed to clear log file.', 'LogIQ'));
         }
     }
 
@@ -452,13 +454,13 @@ class LogIQ_Admin {
      */
     public function ajax_toggle_debug() {
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(__('Permission denied.', 'logiq'));
+            wp_send_json_error(__('Permission denied.', 'LogIQ'));
             return;
         }
 
         check_ajax_referer('logiq_ajax');
 
-        $enabled = isset($_POST['enabled']) ? rest_sanitize_boolean($_POST['enabled']) : false;
+        $enabled = isset($_POST['enabled']) ? rest_sanitize_boolean(wp_unslash($_POST['enabled'])) : false;
         update_option('logiq_debug_enabled', $enabled);
 
         $this->handle_debug_toggle();
@@ -562,7 +564,7 @@ class LogIQ_Admin {
             if ($current_page > 1) {
                 $output .= sprintf(
                     '<a class="first-page" href="#" data-page="1"><span class="screen-reader-text">%s</span>&laquo;</a>',
-                    esc_html__('First page', 'logiq')
+                    esc_html__('First page', 'LogIQ')
                 );
             }
             
@@ -571,7 +573,7 @@ class LogIQ_Admin {
                 $output .= sprintf(
                     '<a class="prev-page" href="#" data-page="%d"><span class="screen-reader-text">%s</span>&lsaquo;</a>',
                     $current_page - 1,
-                    esc_html__('Previous page', 'logiq')
+                    esc_html__('Previous page', 'LogIQ')
                 );
             }
             
@@ -587,7 +589,7 @@ class LogIQ_Admin {
                 $output .= sprintf(
                     '<a class="next-page" href="#" data-page="%d"><span class="screen-reader-text">%s</span>&rsaquo;</a>',
                     $current_page + 1,
-                    esc_html__('Next page', 'logiq')
+                    esc_html__('Next page', 'LogIQ')
                 );
             }
             
@@ -596,7 +598,7 @@ class LogIQ_Admin {
                 $output .= sprintf(
                     '<a class="last-page" href="#" data-page="%d"><span class="screen-reader-text">%s</span>&raquo;</a>',
                     $total_pages,
-                    esc_html__('Last page', 'logiq')
+                    esc_html__('Last page', 'LogIQ')
                 );
             }
             
@@ -662,12 +664,12 @@ class LogIQ_Admin {
         check_ajax_referer('logiq_ajax');
 
         // Sanitize and validate input
-        $file = isset($_POST['file']) ? sanitize_text_field($_POST['file']) : '';
-        $line = isset($_POST['line']) ? absint($_POST['line']) : 1;
+        $file = isset($_POST['file']) ? sanitize_text_field(wp_unslash($_POST['file'])) : '';
+        $line = isset($_POST['line']) ? absint(wp_unslash($_POST['line'])) : 1;
 
         if (empty($file)) {
             wp_send_json_error(array(
-                'message' => __('No file specified.', 'logiq')
+                'message' => __('No file specified.', 'LogIQ')
             ));
             return;
         }
@@ -681,7 +683,7 @@ class LogIQ_Admin {
                 $file = ABSPATH . ltrim($file, '/\\');
             } else {
                 wp_send_json_error(array(
-                    'message' => __('Unable to determine WordPress root path.', 'logiq')
+                    'message' => __('Unable to determine WordPress root path.', 'LogIQ')
                 ));
                 return;
             }
@@ -690,7 +692,8 @@ class LogIQ_Admin {
         // Verify file exists
         if (!file_exists($file)) {
             wp_send_json_error(array(
-                'message' => sprintf(__('File not found: %s', 'logiq'), esc_html($file))
+                /* translators: 1: File path */
+                'message' => sprintf(__('File not found: %s', 'LogIQ'), esc_html($file))
             ));
             return;
         }
@@ -698,7 +701,7 @@ class LogIQ_Admin {
         // Check if file is within allowed directories
         if (!LogIQ_Security::is_file_in_allowed_directory($file)) {
             wp_send_json_error(array(
-                'message' => __('Access to this file is not allowed for security reasons.', 'logiq')
+                'message' => __('Access to this file is not allowed for security reasons.', 'LogIQ')
             ));
             return;
         }
@@ -726,25 +729,25 @@ class LogIQ_Admin {
         return array(
             'WP_DEBUG' => array(
                 'name' => 'WP_DEBUG',
-                'info' => __('Enable WordPress debug logging', 'logiq'),
-                'description' => __('When enabled, WordPress will log debug information to the debug.log file.', 'logiq'),
+                'info' => __('Enable WordPress debug logging', 'LogIQ'),
+                'description' => __('When enabled, WordPress will log debug information to the debug.log file.', 'LogIQ'),
                 'value' => true
             ),
             'WP_DEBUG_LOG' => array(
                 'name' => 'WP_DEBUG_LOG',
-                'info' => __('Log to debug.log file', 'logiq'),
+                'info' => __('Log to debug.log file', 'LogIQ'),
                 'value' => true
             ),
             'WP_DEBUG_DISPLAY' => array(
                 'name' => 'WP_DEBUG_DISPLAY',
-                'info' => __('Display errors and warnings', 'logiq'),
-                'description' => __('Show debug messages in the HTML of your pages.', 'logiq'),
+                'info' => __('Display errors and warnings', 'LogIQ'),
+                'description' => __('Show debug messages in the HTML of your pages.', 'LogIQ'),
                 'value' => false
             ),
             'SCRIPT_DEBUG' => array(
                 'name' => 'SCRIPT_DEBUG',
-                'info' => __('Use development versions of assets', 'logiq'),
-                'description' => __('Load unminified versions of CSS and JavaScript files.', 'logiq'),
+                'info' => __('Use development versions of assets', 'LogIQ'),
+                'description' => __('Load unminified versions of CSS and JavaScript files.', 'LogIQ'),
                 'value' => false
             )
         );
@@ -757,22 +760,20 @@ class LogIQ_Admin {
         try {            
             // Check nonce and capabilities
             if (!check_ajax_referer('logiq_ajax', '_ajax_nonce', false)) {
-                error_log('LogIQ Debug - Nonce verification failed');
                 wp_send_json_error('Invalid security token.');
                 return;
             }
 
             if (!current_user_can('manage_options')) {
-                error_log('LogIQ Debug - Permission check failed');
                 wp_send_json_error('Permission denied.');
                 return;
             }
 
             // Get and validate settings
+            /* ignore sanitization */
             $raw_settings = isset($_POST['settings']) ? $_POST['settings'] : '';
             
             if (empty($raw_settings)) {
-                error_log('LogIQ Debug - No settings provided');
                 wp_send_json_error('No settings provided.');
                 return;
             }
@@ -781,7 +782,6 @@ class LogIQ_Admin {
 
             
             if (json_last_error() !== JSON_ERROR_NONE) {
-                error_log('LogIQ Debug - JSON decode error: ' . json_last_error_msg());
                 wp_send_json_error('Invalid settings format.');
                 return;
             }
@@ -792,7 +792,8 @@ class LogIQ_Admin {
                 $config_path = dirname(ABSPATH) . '/wp-config.php';
             }
 
-            if (!file_exists($config_path) || !is_writable($config_path)) {
+            $wp_filesystem = new WP_Filesystem_Direct(array());
+            if (!$wp_filesystem->exists($config_path) || !$wp_filesystem->is_writable($config_path)) {
                 wp_send_json_error('WordPress configuration file not found or not writable.');
                 return;
             }
@@ -828,7 +829,6 @@ class LogIQ_Admin {
                         );
                     }
                 } catch (Exception $e) {
-                    error_log("LogIQ Debug - Error updating {$name}: " . $e->getMessage());
                     $debug_info[$name] = array(
                         'old_value' => $old_value,
                         'new_value' => $value,
@@ -851,8 +851,6 @@ class LogIQ_Admin {
             }
 
         } catch (Exception $e) {
-            error_log('LogIQ Debug - Fatal error: ' . $e->getMessage());
-            error_log('LogIQ Debug - Stack trace: ' . $e->getTraceAsString());
             wp_send_json_error(array(
                 'message' => $e->getMessage(),
                 'debug_info' => isset($debug_info) ? $debug_info : array()
@@ -870,7 +868,7 @@ class LogIQ_Admin {
                 wp_send_json_error(array(
                     'message' => 'Invalid security token',
                     'debug' => array(
-                        'nonce_received' => isset($_POST['_ajax_nonce']) ? sanitize_text_field($_POST['_ajax_nonce']) : 'none',
+                        'nonce_received' => isset($_POST['_ajax_nonce']) ? sanitize_text_field(wp_unslash($_POST['_ajax_nonce'])) : 'none',
                         'nonce_expected' => wp_create_nonce('logiq_ajax')
                     )
                 ));
@@ -880,7 +878,7 @@ class LogIQ_Admin {
             // Check capabilities
             if (!current_user_can('manage_options')) {
                 wp_send_json_error(array(
-                    'message' => __('Permission denied.', 'logiq')
+                    'message' => __('Permission denied.', 'LogIQ')
                 ));
                 return;
             }

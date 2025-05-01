@@ -6,7 +6,8 @@
  * Version: 1.0.0
  * Author: A K M Elias
  * Author URI: https://akmelias.com
- * Text Domain: logiq
+ * License: GPL-2.0+
+ * Text Domain: LogIQ
  * Domain Path: /languages
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -77,23 +78,20 @@ class LogIQ {
         if (!empty($issues)) {
             deactivate_plugins(LOGIQ_PLUGIN_BASENAME);
             wp_die(
-                '<h1>' . __('LogIQ Activation Error', 'logiq') . '</h1>' .
-                '<p>' . implode('<br>', $issues) . '</p>' .
-                '<p><a href="' . admin_url('plugins.php') . '">' . __('Return to plugins page', 'logiq') . '</a></p>'
+                '<h1>' . esc_html__('LogIQ Activation Error', 'LogIQ') . '</h1>' .
+                '<p>' . implode('<br>', esc_html($issues)) . '</p>' .
+                '<p><a href="' . esc_url(admin_url('plugins.php')) . '">' . esc_html__('Return to plugins page', 'LogIQ') . '</a></p>'
             );
         }
 
         // Set default debug settings
-        try {
-            error_log('LogIQ Debug - Setting default debug settings on activation');
-            
+        try {    
             $config_path = ABSPATH . 'wp-config.php';
             if (!file_exists($config_path)) {
                 $config_path = dirname(ABSPATH) . '/wp-config.php';
             }
 
             if (!file_exists($config_path)) {
-                error_log('LogIQ Debug - wp-config.php not found');
                 return;
             }
 
@@ -101,18 +99,16 @@ class LogIQ {
 
             // Set WP_DEBUG if not defined
             if (!$transformer->exists('WP_DEBUG')) {
-                error_log('LogIQ Debug - Setting default WP_DEBUG to true');
                 $transformer->update('WP_DEBUG', true);
             }
 
             // Set WP_DEBUG_LOG if not defined
             if (!$transformer->exists('WP_DEBUG_LOG')) {
-                error_log('LogIQ Debug - Setting default WP_DEBUG_LOG to true');
                 $transformer->update('WP_DEBUG_LOG', true);
             }
 
         } catch (Exception $e) {
-            error_log('LogIQ Debug - Error setting default debug settings: ' . $e->getMessage());
+           throw new Exception(esc_html($e->getMessage()));
         }
 
         // Register settings
@@ -138,7 +134,7 @@ class LogIQ {
      */
     public function load_textdomain() {
         load_plugin_textdomain(
-            'logiq',
+            'LogIQ',
             false,
             dirname(LOGIQ_PLUGIN_BASENAME) . '/languages/'
         );

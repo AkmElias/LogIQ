@@ -1,14 +1,14 @@
-=== LogIQ - WordPress Debug Log Viewer ===
-Contributors: yourname
-Tags: debug, log viewer, debugging, development, error log, log management
+=== LogIQ ===
+Contributors: akmelias
+Tags: debug, log viewer, development, error log, log management
 Requires at least: 5.8
-Tested up to: 6.4
+Tested up to: 6.8
 Requires PHP: 7.4
 Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-A powerful and user-friendly debug log viewer for WordPress with editor integration. Monitor, analyze, and troubleshoot your WordPress site effectively.
+A powerful and user-friendly debug log viewer for WordPress with editor integration.
 
 == Description ==
 

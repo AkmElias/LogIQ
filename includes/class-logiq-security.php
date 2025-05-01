@@ -16,7 +16,7 @@ class LogIQ_Security {
      */
     public function __construct() {
         // Protect log directory
-        add_action('init', array($this, 'protect_logs_directory'));
+        // add_action('init', array($this, 'protect_logs_directory'));
         
         // Add capability checks
         add_action('admin_init', array($this, 'check_capabilities'));
@@ -46,7 +46,7 @@ class LogIQ_Security {
      */
     public function check_capabilities() {
         if ($this->is_logiq_page() && !current_user_can('manage_options')) {
-            wp_die(__('You do not have sufficient permissions to access this page.', 'logiq'));
+            wp_die(esc_html(__('You do not have sufficient permissions to access this page.', 'LogIQ')));
         }
     }
 
@@ -239,12 +239,12 @@ class LogIQ_Security {
      */
     public static function verify_ajax_request($action) {
         if (!check_ajax_referer('logiq_admin_nonce', 'nonce', false)) {
-            wp_send_json_error(__('Invalid security token.', 'logiq'));
+            wp_send_json_error(__('Invalid security token.', 'LogIQ'));
             return false;
         }
         
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(__('Insufficient permissions.', 'logiq'));
+            wp_send_json_error(__('Insufficient permissions.', 'LogIQ'));
             return false;
         }
         

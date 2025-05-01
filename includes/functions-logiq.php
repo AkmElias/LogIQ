@@ -105,19 +105,15 @@ function logiq_check_system_compatibility() {
     
     // Check PHP version
     if (version_compare(PHP_VERSION, '7.4', '<')) {
-        $issues[] = sprintf(
-            __('LogIQ requires PHP 7.4 or higher. Your current PHP version is %s.', 'logiq'),
-            PHP_VERSION
-        );
+        /* translators: 1: PHP version */
+        $issues[] = sprintf(__('LogIQ requires PHP 7.4 or higher. Your current PHP version is %s.', 'LogIQ'),PHP_VERSION);
     }
     
     // Check WordPress version
     global $wp_version;
     if (version_compare($wp_version, '5.8', '<')) {
-        $issues[] = sprintf(
-            __('LogIQ requires WordPress 5.8 or higher. Your current WordPress version is %s.', 'logiq'),
-            $wp_version
-        );
+        /* translators: 1: WordPress version */
+        $issues[] = sprintf(__('LogIQ requires WordPress 5.8 or higher. Your current WordPress version is %s.', 'LogIQ'),$wp_version);
     }
     
     return $issues;
