@@ -17,6 +17,7 @@ LogIQ is a powerful debug log viewer that makes WordPress debugging easier and m
 = Key Features =
 
 * **Real-time Log Monitoring**: View WordPress debug logs directly from your admin dashboard
+* **Complex Data Handling**: Beautifully formats and displays complex data types like JSON and arrays with proper indentation and syntax highlighting
 * **Smart Log Parsing**: Automatically categorizes logs into different levels (Fatal, Error, Warning, Notice, Deprecated, Info, Debug)
 * **Advanced Filtering**: Filter logs by level to focus on specific types of issues
 * **Clickable File Links**: Click on file paths in log entries to open them directly in your code editor
@@ -90,6 +91,10 @@ The plugin will fall back to using the file:// protocol, which will open the fil
 = How does the editor integration work? =
 
 When you click a file link in a log entry, LogIQ detects your installed editors and constructs the appropriate URL to open the file. For supported editors, it will open directly to the specific line number mentioned in the log.
+
+= How does LogIQ handle complex data types? =
+
+LogIQ automatically detects and formats complex data types like JSON and arrays. When these data types are logged, they are displayed with proper indentation, syntax highlighting, and collapsible sections for better readability. This makes it easier to debug and understand complex data structures in your logs.
 
 == Screenshots ==
 

@@ -36,7 +36,6 @@ require_once LOGIQ_PLUGIN_DIR . 'includes/class-logiq-security.php';
 class LogIQ {
     private static $instance = null;
     private $admin;
-    private $ajax;
     private $security;
 
     /**
@@ -63,10 +62,6 @@ class LogIQ {
 
         // Add actions and filters
         add_action('plugins_loaded', array($this, 'load_textdomain'));
-        add_action('admin_enqueue_scripts', array($this->admin, 'enqueue_admin_assets'));
-        add_action('wp_ajax_logiq_get_logs', array($this->ajax, 'get_logs'));
-        add_action('wp_ajax_logiq_clear_logs', array($this->ajax, 'clear_logs'));
-        add_action('wp_ajax_logiq_toggle_debug', array($this->admin, 'handle_debug_toggle'));
     }
 
     /**
@@ -111,9 +106,6 @@ class LogIQ {
            throw new Exception(esc_html($e->getMessage()));
         }
 
-        // Register settings
-        $this->admin->register_settings();
-
         // Flush rewrite rules
         flush_rewrite_rules();
     }
@@ -122,9 +114,6 @@ class LogIQ {
      * Plugin deactivation
      */
     public function deactivate() {
-        // Clean up any temporary data
-        delete_option('logiq_debug_enabled');
-
         // Flush rewrite rules
         flush_rewrite_rules();
     }

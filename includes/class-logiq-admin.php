@@ -20,13 +20,11 @@ class LogIQ_Admin {
      */
     public function __construct() {
         add_action('admin_menu', array($this, 'add_admin_menu'));
-        add_action('admin_init', array($this, 'register_settings'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
 
         // Register AJAX handlers
         add_action('wp_ajax_logiq_get_logs', array($this, 'ajax_get_logs'));
         add_action('wp_ajax_logiq_clear_logs', array($this, 'ajax_clear_logs'));
-        add_action('wp_ajax_logiq_toggle_debug', array($this, 'ajax_toggle_debug'));
         add_action('wp_ajax_logiq_open_in_editor', array($this, 'open_in_editor'));
         add_action('wp_ajax_logiq_update_debug_settings', array($this, 'ajax_update_debug_settings'));
         add_action('wp_ajax_logiq_get_debug_settings', array($this, 'ajax_get_debug_settings'));
@@ -46,17 +44,6 @@ class LogIQ_Admin {
     }
 
     /**
-     * Register plugin settings
-     */
-    public function register_settings() {
-        register_setting('logiq_options', 'logiq_debug_enabled', array(
-            'type' => 'boolean',
-            'default' => true,
-            'sanitize_callback' => 'rest_sanitize_boolean'
-        ));
-    }
-
-    /**
      * Render admin page
      */
     public function render_admin_page() {
@@ -64,7 +51,6 @@ class LogIQ_Admin {
             wp_die(esc_html(__('You do not have sufficient permissions to access this page.', 'LogIQ')));
         }
 
-        $debug_enabled = get_option('logiq_debug_enabled', true);
         ?>
         <div class="wrap">
             <h1><?php echo esc_html__('LogIQ Debug', 'LogIQ'); ?></h1>
@@ -148,56 +134,6 @@ class LogIQ_Admin {
             </div>
         </div>
         <?php
-    }
-
-    /**
-     * Handle debug toggle
-     */
-    public function handle_debug_toggle() {
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(__('Permission denied.', 'LogIQ'));
-            return;
-        }
-
-        $debug_enabled = get_option('logiq_debug_enabled', true);
-        $config_path = ABSPATH . 'wp-config.php';
-
-        // use wp_filesystem to check if the file exists and is writable
-        $wp_filesystem = new WP_Filesystem_Direct(array());
-        if (!$wp_filesystem->exists($config_path) || !$wp_filesystem->is_writable($config_path)) {
-            wp_send_json_error(__('wp-config.php not found or not writable.', 'LogIQ'));
-            return;
-        }
-
-        $config_content = file_get_contents($config_path);
-        if ($debug_enabled) {
-            // Enable debug logging
-            if (!defined('WP_DEBUG')) {
-                $config_content = preg_replace(
-                    '/\n\s*\/\*\*\s*@package\s+WordPress\s*\*\//',
-                    "\ndefine('WP_DEBUG', true);\ndefine('WP_DEBUG_LOG', true);\n$0",
-                    $config_content
-                );
-            }
-        } else {
-            // Disable debug logging
-            $config_content = preg_replace(
-                '/\s*define\s*\(\s*[\'"]WP_DEBUG[\'"]\s*,\s*(?:true|false)\s*\)\s*;/',
-                '',
-                $config_content
-            );
-            $config_content = preg_replace(
-                '/\s*define\s*\(\s*[\'"]WP_DEBUG_LOG[\'"]\s*,\s*(?:true|false)\s*\)\s*;/',
-                '',
-                $config_content
-            );
-        }
-
-        if (file_put_contents($config_path, $config_content)) {
-            wp_send_json_success();
-        } else {
-            wp_send_json_error(__('Failed to update wp-config.php.', 'LogIQ'));
-        }
     }
 
     /**
@@ -449,22 +385,6 @@ class LogIQ_Admin {
         }
     }
 
-    /**
-     * AJAX handler for toggling debug
-     */
-    public function ajax_toggle_debug() {
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(__('Permission denied.', 'LogIQ'));
-            return;
-        }
-
-        check_ajax_referer('logiq_ajax');
-
-        $enabled = isset($_POST['enabled']) ? rest_sanitize_boolean(wp_unslash($_POST['enabled'])) : false;
-        update_option('logiq_debug_enabled', $enabled);
-
-        $this->handle_debug_toggle();
-    }
 
     /**
      * Parse a log entry
@@ -771,7 +691,7 @@ class LogIQ_Admin {
 
             // Get and validate settings
             /* ignore sanitization */
-            $raw_settings = isset($_POST['settings']) ? $_POST['settings'] : '';
+            $raw_settings = isset($_POST['settings']) ? sanitize_text_field(wp_unslash($_POST['settings'])) : '';
             
             if (empty($raw_settings)) {
                 wp_send_json_error('No settings provided.');
@@ -779,7 +699,6 @@ class LogIQ_Admin {
             }
 
             $settings = json_decode(stripslashes($raw_settings), true);
-
             
             if (json_last_error() !== JSON_ERROR_NONE) {
                 wp_send_json_error('Invalid settings format.');
@@ -790,6 +709,12 @@ class LogIQ_Admin {
             $config_path = ABSPATH . 'wp-config.php';
             if (!file_exists($config_path)) {
                 $config_path = dirname(ABSPATH) . '/wp-config.php';
+            }
+
+            // check wp_filesystem exists
+            if (!class_exists('WP_Filesystem_Direct')) {
+                require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-base.php';
+                require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-direct.php';
             }
 
             $wp_filesystem = new WP_Filesystem_Direct(array());

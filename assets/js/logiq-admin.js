@@ -95,33 +95,6 @@ jQuery(document).ready(function($) {
         openInEditor(editorData.file, editorData.line || 1);
     });
 
-    // Handle debug toggle
-    $('input[name="logiq_debug_enabled"]').on('change', function() {
-        var isEnabled = $(this).prop('checked');
-        
-        $.ajax({
-            url: logiq_ajax.ajax_url,
-            type: 'POST',
-            data: {
-                action: 'logiq_toggle_debug',
-                enabled: isEnabled,
-                _ajax_nonce: logiq_ajax.nonce
-            },
-            success: function(response) {
-                if (!response.success) {
-                    alert(response.data || 'Failed to update debug settings.');
-                    // Revert checkbox state
-                    $('input[name="logiq_debug_enabled"]').prop('checked', !isEnabled);
-                }
-            },
-            error: function() {
-                alert('Failed to update debug settings.');
-                // Revert checkbox state
-                $('input[name="logiq_debug_enabled"]').prop('checked', !isEnabled);
-            }
-        });
-    });
-
     // Update count badges
     function updateCountBadges(counts) {
         Object.keys(counts).forEach(function(level) {
